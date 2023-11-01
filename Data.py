@@ -5,6 +5,7 @@ from scipy.io import loadmat
 import plotly.graph_objects as go
 import os
 from Signal import Signal
+import Transforms
 
 class Data(ABC):
     
@@ -95,7 +96,7 @@ class MarshData(Data):
                 format='mat', filepath=os.path.join(self.root, fn+'.mat'), type=meta, sample_rate=sample_rate
             )
 
-        ecg_envelope = Transforms.SplineEnvelope(**kwargs)(self.ECG().data)
+        _, ecg_envelope = Transforms.SplineEnvelope(**kwargs)(self.ECG().data)
         self.data['ECG_ENV'] = Signal(
             data=ecg_envelope, format='mat', filepath="N/A", type='ECG_ENV', sample_rate=self.sample_rate_map['ECG']
         )
