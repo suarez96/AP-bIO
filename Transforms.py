@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from scipy.interpolate import CubicSpline
 from Signal import Signal
+import neurokit2 as nk
 
 class Transform(ABC):
 
@@ -15,6 +16,8 @@ class Transform(ABC):
             if signal.transformed_data is None:
                 signal.transformed_data = signal.data.copy()
             x = signal.transformed_data
+        else:
+            x = signal
         return self._transform(x)
     
     def _transform(self, x):
@@ -23,7 +26,7 @@ class Transform(ABC):
 
 class Crop(Transform):
     
-    def __init__(self, start, end=None, length=None):
+    def __init__(self, start, end=None, length=None, default_sample_rate=None):
         """
         start: start of crop in seconds
         end: end of crop in seconds
@@ -33,12 +36,18 @@ class Crop(Transform):
         self.start = start
         self.end = end
         self.length = length
+        self.default_sample_rate = default_sample_rate
 
-    def _transform(self, signal):
+    def _transform(self, x):
+        try:
+            sample_rate = x.sample_rate
+        except AttributeError:
+            sample_rate = self.default_sample_rate
+        
         if self.end is not None:
-            return x[self.start*signal.sample_rate:self.end*signal.sample_rate]
+            return x[self.start*sample_rate:self.end*sample_rate]
         else:
-            return x[self.start*signal.sample_rate:self.start*signal.sample_rate+self.length*signal.sample_rate]
+            return x[self.start*sample_rate:self.start*sample_rate+self.length*sample_rate]
 
 class SplineEnvelope(Transform):
 
@@ -47,15 +56,15 @@ class SplineEnvelope(Transform):
         self.peak_extraction_method = peak_extraction_method
     
     def extract_peaks(self, x):
-        # TODO
-        
+        signal, info = nk.ecg_peaks(x, sampling_rate=250, correct_artifacts=True) 
+        t = info['ECG_R_Peaks']
         # peaks and times
-        return t, peaks
+        return t, x[t]
         
     def _transform(self, x):
         
-        if n_spline_pts is None:
-            n_spline_pts = x.shape[0]
+        if self.n_spline_pts is None:
+            self.n_spline_pts = x.shape[0]
             
         # peaks and times
         t, peaks = self.extract_peaks(x)
