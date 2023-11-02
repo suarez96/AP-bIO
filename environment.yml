@@ -137,6 +137,7 @@ dependencies:
     - pycparser==2.21
     - pygments==2.16.1
     - python-json-logger==2.0.7
+    - pywavelets==1.4.1
     - pywin32==306
     - pywinpty==2.0.12
     - pyyaml==6.0.1
@@ -166,5 +167,6 @@ dependencies:
     - webcolors==1.13
     - webencodings==0.5.1
     - websocket-client==1.6.4
+    - wfdb==1.16.0
     - widgetsnbextension==4.0.9
 prefix: C:\Users\augus\Anaconda3\envs\MEng

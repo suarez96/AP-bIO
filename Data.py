@@ -87,57 +87,74 @@ class MarshData(Data):
         for fn, sample_rate in self.sample_rate_map.items():
             meta = fn.split('.')[0]
             self.data[meta] = Signal(
-                format='mat', filepath=os.path.join(self.root, fn+'.mat'), type=meta, sample_rate=sample_rate
+                format='mat', filepath=os.path.join(self.root, fn+'.mat'), _type=meta, sample_rate=sample_rate
             )
 
-        _, ecg_envelope = Transforms.SplineEnvelope(**kwargs)(self.ECG().data)
+        _, ecg_envelope = Transforms.SplineEnvelope(**kwargs)(self.ECG())
         self.data['ECG_ENV'] = Signal(
-            data=ecg_envelope, format='mat', filepath="N/A", type='ECG_ENV', sample_rate=self.sample_rate_map['ECG']
+            data=ecg_envelope, format='mat', filepath="N/A", _type='ECG_ENV', sample_rate=self.sample_rate_map['ECG']
         )
 
 
 class FantasiaData(Data):
-
-    def __init__(self):
-        # TODO    
-        super().__init__()
     
-        self.song_limits = [
-            0,
-            9*60 + 20,
-            15*60 + 30,
-            8*60 + 30,
-            23*60 + 15,
-            3*60,
-            8*60 + 30,
-            9*60 + 30,
-            11*60 + 30,
-        ]
-        
-        self.song_names = [
-            "Toccata and Fugue in D Minor",
-            "The Nutcracker Suite",
-            "The Sorcerer's Apprentice",
-            "Rite of Spring",
-            "Intermission/Meet the Soundtrack",
-            "The Pastoral Symphony",
-            "Dance of the Hours",
-            "Night on Bald Mountain and Ave Maria"
-        ]
+    songs = {
+        1: {"name": "Toccata and Fugue in D Minor", "times": {"start": 0, "end": 9*60 + 20}},
+        2: {"name": "The Nutcracker Suite", "times": {"start": 9*60 + 20, "end": 15*60 + 30}},
+        3: {"name": "The Sorcerer's Apprentice", "times": {"start": 15*60 + 30, "end": 8*60 + 30}},
+        4: {"name": "Rite of Spring", "times": {"start": 8*60 + 30, "end": 23*60 + 15}},
+        5: {"name": "Intermission/Meet the Soundtrack", "times": {"start": 23*60 + 15, "end": 3*60}},
+        6: {"name": "The Pastoral Symphony", "times": {"start": 3*60, "end": 8*60 + 30}},
+        7: {"name": "Dance of the Hours", "times": {"start": 8*60 + 30, "end": 9*60 + 30}},
+        8: {"name": "Night on Bald Mountain and Ave Maria", "times": {"start": 9*60 + 30, "end": 11*60 + 30}}
+    }
 
-    def load(self):
-        pass
-        # TODO
-        # for fp in tqdm(
-        # glob.glob("C:/Users/augus/Google Drive/UofT/MEng/fantasia/physionet.org/files/fantasia/1.0.0/*dat")[:3]
-        # ):
-        #     fp_trimmed = fp.split('.dat')[0]
-        #     fant_data, info = wfdb.rdsamp(os.path.abspath(fp_trimmed))
-        #     fant_br, fant_ecg = fant_data.T
-        #     fant_br = fant_br[:fant_ecg.shape[0]-fant_ecg.shape[0]%Fs_fantasia]
-        #     fant_ecg = fant_ecg[:fant_ecg.shape[0]-fant_ecg.shape[0]%Fs_fantasia]
-            
-        #     _, envelope = spline_envelope(fant_ecg, n_spline_pts=fant_ecg.shape[0])
+    def __init__(self, root, **kwargs):
+        """
+        Fantasia Database expanded (March 2, 2003, midnight)
+
+        A subset of data from the Fantasia Database has been available here for several years; the remainder of the database 
+        is now available. It consists of ECG and respiration recordings, with beat annotations, from 20 young and 20 elderly 
+        subjects, all rigorously screened as healthy, in sinus rhythm during a resting state (two hours each). Half of the 
+        recordings also include (uncalibrated) continuous noninvasive blood pressure signals.
+
+        From  Virtual Respiratory Rate Sensors 5-A: An Example of A Smartphone-Based Integrated and 
+        Multiparametric mHealth Gateway
+        
+        A. Analysis on the PhysioNet Fantasia Database
+            The PhysioNet Fantasia database contains data of
+            young (21–34 year old) and elderly (68–85) healthy subjects,
+            who underwent 120 min of continuous supine rest, while
+            the ECG signal and respiration signals were recorded with
+            clinical instrumentation at a sample rate of 250 Hz. The
+            respiratory activity has been acquired as well, by using a
+            respiration belt [18]. Among all data, ten young and ten elderly
+            subjects have been randomly chosen.
+        """
+        super().__init__(root)
+        
+        self.sample_rate_map = {
+            'ECG': 250,
+            'IP': 250
+        }        
+        
+        # load each signal using wfdb.rdsamp(os.path.abspath(fp_trimmed)) function
+        # fantasia only has 2 signal types, both at 250hz
+        joined_signal = Signal(
+            format='dat', filepath=self.root, _type='N/A', sample_rate=250
+        )
+        ecg_signal = joined_signal.copy()
+        ip_signal = joined_signal.copy()
+        ip_signal.data, ecg_signal.data = joined_signal.data[0].T
+        self.patient_dict = joined_signal.data[1]
+        ecg_signal.type, ip_signal.type = 'ECG', 'IP'
+
+        self.data['ECG'] = ecg_signal
+        self.data['IP'] = ip_signal
+        _, ecg_envelope = Transforms.SplineEnvelope(**kwargs)(self.ECG())
+        self.data['ECG_ENV'] = Signal(
+            data=ecg_envelope, format='mat', filepath="N/A", _type='ECG_ENV', sample_rate=self.sample_rate_map['ECG']
+        )
 
 
 class Dataset:

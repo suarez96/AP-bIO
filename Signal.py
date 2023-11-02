@@ -1,12 +1,11 @@
 import numpy as np
-from scipy.interpolate import CubicSpline
 from scipy.io import loadmat
 import plotly.graph_objects as go
 import os
 from types import LambdaType
 import plotly.express as px
-
-print()
+import wfdb
+import copy
 
 class Signal:
 
@@ -23,13 +22,13 @@ class Signal:
         self, 
         format: str,
         filepath: str, 
-        type: str, 
+        _type: str, 
         data: np.array = None,
         sample_rate: int = 250
     ):
         self.format = format
         self.filepath = filepath
-        self.type = type
+        self.type = _type
         self.sample_rate = sample_rate
         try:
             self.load_fn = {
@@ -38,7 +37,7 @@ class Signal:
             }[self.format]
         except KeyError:
             raise KeyError("Format must be one of: "+ ','.join(list(self.load_fn.keys())))
-        self.data = data if data is not None else self.load_fn(self.filepath, type)
+        self.data = data if data is not None else self.load_fn(self.filepath, _type)
         self.transformed_data=None
         self.is_original = True
     
@@ -83,6 +82,9 @@ class Signal:
             "sample_rate": self.sample_rate,
         })
 
+    def copy(self):
+        return copy.copy(self)
+
     def transform(self, transforms, inplace=False):
         self.transformed_data = self.data.copy()
         for t in transforms:
@@ -96,10 +98,27 @@ class Signal:
             self.data=self.transformed_data
         return self
 
-    def mat_loader(self, filepath, type):
-        x = loadmat(filepath)[type]
+    def mat_loader(self, filepath, _type):
+        x = loadmat(filepath)[_type]
         print(self.type, "shape: ", x.shape)
         return x.flatten()
         
-    def dat_loader(self, filepath):
-        return wfdb.rdsamp(os.path.abspath(fp_trimmed))
+    def dat_loader(self, filepath, _type):
+        """
+        filepath: str requires a file with a .dat and a .head part
+        """
+        return wfdb.rdsamp(os.path.abspath(filepath))
+
+    def fft(self, transformed=False, top_freq=5):
+        x = (self.transformed_data if transformed else self.data).copy()
+        x -= x.mean()
+        M = abs(np.fft.fft(x))
+        freq = np.fft.fftfreq(x.shape[0], d=1/self.sample_rate)
+        fig = go.Figure()
+        fig.add_trace(
+            go.Scatter(
+                x = freq[(freq > 0) & (freq < top_freq)],
+                y = M[(freq > 0) & (freq < top_freq)]
+            )
+        )
+        fig.show()
