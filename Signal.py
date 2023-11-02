@@ -4,8 +4,21 @@ from scipy.io import loadmat
 import plotly.graph_objects as go
 import os
 from types import LambdaType
+import plotly.express as px
+
+print()
 
 class Signal:
+
+    color_map = {
+            "ECG": px.colors.qualitative.Plotly[0],
+            'ECG_ENV': px.colors.qualitative.Plotly[3], # envelope
+            "PPG": px.colors.qualitative.Plotly[1],
+            "IP": px.colors.qualitative.Plotly[2],
+            "NASAL": px.colors.qualitative.Plotly[4],
+        }
+    
+    
     def __init__(
         self, 
         format: str,
@@ -47,15 +60,19 @@ class Signal:
                     yaxis_title='Signal Value'
                 )
             )
+            base_fig.update_layout(plot_bgcolor='rgba(240, 240, 240, 0.8)', showlegend=True)
+            base_fig.update_xaxes(showline=True, mirror=True, linewidth=1, linecolor='black')
+            base_fig.update_yaxes(showline=True, mirror=True, linewidth=1, linecolor='black')
         
         base_fig.add_trace(
             go.Scatter(
                 x=t,
                 y=x,
-                name=self.type
+                name=self.type,
+                marker=dict(color=self.color_map[self.type])
             )
         )
-        base_fig.update_layout(showlegend=True)
+        base_fig.update_traces(opacity=0.8)
         return base_fig
 
     def __repr__(self):
@@ -69,11 +86,12 @@ class Signal:
     def transform(self, transforms, inplace=False):
         self.transformed_data = self.data.copy()
         for t in transforms:
-            # lambda functions
+            # lambda function support
             if isinstance(t, LambdaType):
                 self.transformed_data = t(self.transformed_data)
             else:
                 self.transformed_data = t(self)
+        # replace data with transformed data
         if inplace:
             self.data=self.transformed_data
         return self
