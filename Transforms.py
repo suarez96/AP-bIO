@@ -13,12 +13,14 @@ class Transform(ABC):
 
     def __call__(self, signal):
         if isinstance(signal, Signal):
+            print("SIGNAL INSTANCE TRUE")
             if signal.transformed_data is None:
                 signal.transformed_data = signal.data.copy()
             x = signal.transformed_data
         else:
             x = signal
-        return self._transform(x)
+            signal=None
+        return self._transform(x, signal)
     
     def _transform(self, x):
         raise NotImplementedError
@@ -26,7 +28,7 @@ class Transform(ABC):
 
 class Crop(Transform):
     
-    def __init__(self, start, end=None, length=None, default_sample_rate=None):
+    def __init__(self, start, end=None, length=None, default_sample_rate=250):
         """
         start: start of crop in seconds
         end: end of crop in seconds
@@ -38,10 +40,10 @@ class Crop(Transform):
         self.length = length
         self.default_sample_rate = default_sample_rate
 
-    def _transform(self, x):
+    def _transform(self, x, signal):
         try:
-            sample_rate = x.sample_rate
-        except AttributeError:
+            sample_rate = signal.sample_rate
+        except ValueError:#AttributeError:
             sample_rate = self.default_sample_rate
         
         if self.end is not None:
@@ -61,7 +63,7 @@ class SplineEnvelope(Transform):
         # peaks and times
         return t, x[t]
         
-    def _transform(self, x):
+    def _transform(self, x, signal):
         
         if self.n_spline_pts is None:
             self.n_spline_pts = x.shape[0]
@@ -84,7 +86,7 @@ class MinMaxScale(Transform):
     def __init__(self):
         pass
         
-    def _transform(self, x):
+    def _transform(self, x, signal):
         return (x-x.min())/(x.max()-x.min())
 
 class CWT(Transform):
@@ -92,7 +94,7 @@ class CWT(Transform):
     def __init__(self):
         pass
 
-    def _transform(self, x, plot=True):
+    def _transform(self, x, signal, plot=True):
         # TODO
         # make sure to remove the mean
         pass
