@@ -3,6 +3,8 @@ import numpy as np
 from scipy.interpolate import CubicSpline
 from Signal import Signal
 import neurokit2 as nk
+import pywt
+import matplotlib.pyplot as plt
 
 class Transform(ABC):
 
@@ -53,15 +55,24 @@ class Crop(Transform):
 
 class SplineEnvelope(Transform):
 
-    def __init__(self, n_spline_pts=None, peak_extraction_method=None):
+    def __init__(self, n_spline_pts=None, **kwargs):
+        """
+        https://neuropsychology.github.io/NeuroKit/_modules/neurokit2/ecg/ecg_peaks.html#ecg_peaks
+        """
         self.n_spline_pts = n_spline_pts
-        self.peak_extraction_method = peak_extraction_method
+        self.peak_extraction_method = kwargs.get("peak_extraction_method", "martinez2004")
+        self.correct_artifacts = kwargs.get("correct_artifacts", False)
     
-    def extract_peaks(self, x):
-        signal, info = nk.ecg_peaks(x, sampling_rate=250, correct_artifacts=True) 
+    def extract_peaks(self, x, sample_rate=250):
+        signal, info = nk.ecg_peaks(
+            x, 
+            sampling_rate=sample_rate, 
+            correct_artifacts=self.correct_artifacts, 
+            method=self.peak_extraction_method
+        )
         t = info['ECG_R_Peaks']
         # peaks and times
-        return  np.hstack([np.zeros(1), t]), np.hstack([np.zeros(1), x[t]])
+        return  np.hstack([np.zeros(1), t]), np.hstack([np.ones(1)*x.mean(), x[t]])
         
     def _transform(self, x, signal):
         
@@ -69,7 +80,7 @@ class SplineEnvelope(Transform):
             self.n_spline_pts = x.shape[0]
             
         # peaks and times
-        t, peaks = self.extract_peaks(x)
+        t, peaks = self.extract_peaks(x, sample_rate=signal.sample_rate)
     
         # Creating a cubic spline interpolation
         cs = CubicSpline(t, peaks)
@@ -81,6 +92,14 @@ class SplineEnvelope(Transform):
         spline = cs(t_new)
         return t_new, spline
 
+class MeanSubtraction(Transform):
+
+    def __init__(self):
+        pass
+        
+    def _transform(self, x, signal):
+        return x-x.mean()
+
 class MinMaxScale(Transform):
 
     def __init__(self):
@@ -89,12 +108,43 @@ class MinMaxScale(Transform):
     def _transform(self, x, signal):
         return (x-x.min())/(x.max()-x.min())
 
+
 class CWT(Transform):
 
-    def __init__(self):
-        pass
+    def __init__(
+        self, 
+        lower_bound: float=0.1, 
+        higher_bound: float=1, 
+        resolution: int=10, 
+        plot: bool=False, 
+        wavelet: str='cmor5-0.8125'
+    ):
+        self.lower_bound = lower_bound
+        self.higher_bound = higher_bound
+        self.resolution = resolution
+        self.plot = plot
+        self.wavelet = wavelet
+        wavelet_params = self.wavelet.split('cmor')[1]
+        self.wavelet_A_param = float(wavelet_params.split('-')[0])
+        self.wavelet_B_param = float(wavelet_params.split('-')[1])
 
-    def _transform(self, x, signal, plot=True):
-        # TODO
-        # make sure to remove the mean
-        pass
+    def _transform(self, x, signal):
+        # remove DC level
+        x -= x.mean()
+        freq_space = np.linspace(self.lower_bound, self.higher_bound, self.resolution)
+        scales = (self.wavelet_B_param*signal.sample_rate)/freq_space
+        coefficients, frequencies = pywt.cwt(x, scales, self.wavelet, sampling_period=1/signal.sample_rate)
+        coefficients = np.abs(coefficients)[::-1, :] # flip to get ascending frequency
+        if self.plot:
+            plt.figure(figsize=(9, 3))
+            plt.imshow(
+                coefficients,  # Replace with your data or coefficients
+                aspect='auto',
+                extent=[0, coefficients.shape[1]/signal.sample_rate, self.lower_bound, self.higher_bound], 
+                interpolation='bilinear',
+            )
+            plt.xlabel("Time (s)")
+            plt.ylabel("Freq (hz)")
+            plt.title(f'CWT {signal.type}')
+            plt.show()
+        return coefficients
