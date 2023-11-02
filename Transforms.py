@@ -13,13 +13,13 @@ class Transform(ABC):
 
     def __call__(self, signal):
         if isinstance(signal, Signal):
-            print("SIGNAL INSTANCE TRUE")
             if signal.transformed_data is None:
                 signal.transformed_data = signal.data.copy()
             x = signal.transformed_data
         else:
             x = signal
             signal=None
+
         return self._transform(x, signal)
     
     def _transform(self, x):

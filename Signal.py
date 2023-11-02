@@ -3,6 +3,7 @@ from scipy.interpolate import CubicSpline
 from scipy.io import loadmat
 import plotly.graph_objects as go
 import os
+from types import LambdaType
 
 class Signal:
     def __init__(
@@ -68,7 +69,11 @@ class Signal:
     def transform(self, transforms, inplace=False):
         self.transformed_data = self.data.copy()
         for t in transforms:
-            self.transformed_data = t(self)
+            # lambda functions
+            if isinstance(t, LambdaType):
+                self.transformed_data = t(self.transformed_data)
+            else:
+                self.transformed_data = t(self)
         if inplace:
             self.data=self.transformed_data
         return self
