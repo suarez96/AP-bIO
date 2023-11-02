@@ -38,12 +38,6 @@ class Data(ABC):
     def ECG_ENV(self):
         return self.data['ECG_ENV']
 
-    
-    # @abstractmethod
-    # Load a single sample from a file, and then all the files from a single source will be organized in the Dataset class
-    # def load(self):
-    #     raise NotImplementedError
-
     # should have an option according to which type of signal we want to plot
     def plot_all(self, time_ranges=[None], sample_rate=250):
         raise NotImplementedError

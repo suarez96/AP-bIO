@@ -61,7 +61,7 @@ class SplineEnvelope(Transform):
         signal, info = nk.ecg_peaks(x, sampling_rate=250, correct_artifacts=True) 
         t = info['ECG_R_Peaks']
         # peaks and times
-        return t, x[t]
+        return  np.hstack([np.zeros(1), t]), np.hstack([np.zeros(1), x[t]])
         
     def _transform(self, x, signal):
         
