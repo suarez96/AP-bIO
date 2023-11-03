@@ -8,6 +8,10 @@ import wfdb
 import copy
 
 class Signal:
+    """
+    Signal object. A combination of raw bioelectric signals, with its metadata such as source, filetype, sample rate, the type of 
+    recording (ECG, PPG). Also includes some useful plotting functions such as plot (time domain plot) and fft (freq domain plot).
+    """
 
     color_map = {
             "ECG": px.colors.qualitative.Plotly[0],
@@ -86,6 +90,9 @@ class Signal:
         return copy.copy(self)
 
     def transform(self, transforms, inplace=False):
+        """
+        Apply a series of transforms defined in the pipeline called "transforms".
+        """
         self.transformed_data = self.data.copy()
         for t in transforms:
             # lambda function support
@@ -99,6 +106,9 @@ class Signal:
         return self
 
     def mat_loader(self, filepath, _type):
+        """
+        Load from .mat file
+        """
         x = loadmat(filepath)[_type]
         print(self.type, "shape: ", x.shape)
         return x.flatten()
@@ -110,6 +120,9 @@ class Signal:
         return wfdb.rdsamp(os.path.abspath(filepath))
 
     def fft(self, transformed=False, top_freq=5):
+        """
+        plot the fast fourier transform for the signal data
+        """
         x = (self.transformed_data if transformed else self.data).copy()
         x -= x.mean()
         M = abs(np.fft.fft(x))
