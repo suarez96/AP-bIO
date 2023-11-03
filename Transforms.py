@@ -7,13 +7,18 @@ import pywt
 import matplotlib.pyplot as plt
 
 class Transform(ABC):
-
-    # Transforms such as subtracting mean and min-max scale should be here. As well as extract QRS-complex peaks and CWT
+    """
+    Base class. Abstract
+    """
         
     def __init__(self):
         pass
 
     def __call__(self, signal):
+        """
+        Is simply an interface for the transform function. Before _transform is called, __call__ checks if the input is a signal object 
+        or a raw signal.
+        """
         if isinstance(signal, Signal):
             if signal.transformed_data is None:
                 signal.transformed_data = signal.data.copy()
@@ -54,16 +59,19 @@ class Crop(Transform):
             return x[self.start*sample_rate:self.start*sample_rate+self.length*sample_rate]
 
 class SplineEnvelope(Transform):
+    """
+    Based on charlton work, the spline envelope based on the ECG signal is used as a reference for the breathing rate.
+    """
 
     def __init__(self, n_spline_pts=None, **kwargs):
-        """
-        https://neuropsychology.github.io/NeuroKit/_modules/neurokit2/ecg/ecg_peaks.html#ecg_peaks
-        """
         self.n_spline_pts = n_spline_pts
         self.peak_extraction_method = kwargs.get("peak_extraction_method", "martinez2004")
         self.correct_artifacts = kwargs.get("correct_artifacts", False)
     
     def extract_peaks(self, x, sample_rate=250):
+        """
+        https://neuropsychology.github.io/NeuroKit/_modules/neurokit2/ecg/ecg_peaks.html#ecg_peaks
+        """
         signal, info = nk.ecg_peaks(
             x, 
             sampling_rate=sample_rate, 
@@ -93,6 +101,9 @@ class SplineEnvelope(Transform):
         return t_new, spline
 
 class MeanSubtraction(Transform):
+    """
+    In practice, removes DC. This method will make any signal zero-mean.
+    """
 
     def __init__(self):
         pass
@@ -101,6 +112,9 @@ class MeanSubtraction(Transform):
         return x-x.mean()
 
 class MinMaxScale(Transform):
+    """
+    Scales any signal from 0 to 1, not incredibly useful in practice, but very useful for visualizations.
+    """
 
     def __init__(self):
         pass
@@ -110,6 +124,9 @@ class MinMaxScale(Transform):
 
 
 class CWT(Transform):
+    """
+    Calculates the continuous wavelet transform based on the parameters provided in the constructor. Default wavelet is morlet with A=0.5, B=0.8125.
+    """
 
     def __init__(
         self, 

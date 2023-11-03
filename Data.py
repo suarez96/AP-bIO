@@ -8,8 +8,10 @@ from Signal import Signal
 import Transforms
 
 class Data(ABC):
+    """
+    Basically an interface for signal objects.
+    """
     
-    # interface for signals
     def __init__(self, root):
         self.data = {
             "ECG": None,
@@ -44,34 +46,32 @@ class Data(ABC):
 
 
 class MarshData(Data):
+    """
+    Source
+    https://www.sciencedirect.com/science/article/pii/S1746809420300434
+    Section 3.2.1
+    
+    This dataset, 'MARSH', includes respiratory signals as part of the study "Fusion enhancement for tracking of 
+    respiratory rate through intrinsic mode functions in photoplethysmography." It is meant to support academic research, 
+    particularly on algorithm development tools.
+    
+    Contents:
+    
+    Data.txt (age, gender, height, weight, systole, diastole, [respectively])
+    ECG.mat (raw ECG data)
+    ECG_annot.mat (annotations for the R peaks in ECG data)
+    IP.mat (Raw IP data)
+    IP_annot.mat (annotations for the local maxima of IP data [end of inspiration phase])
+    NASAL.mat (Thermistor mask data)
+    NASAL_annot.mat (annotations for the local maxima of thermistor mask data [end of inspiration phase])
+    PPG.mat (Raw PPG signal data)
+    
+    Sample_rates ECG, IP is 250hz
+    
+    PPG is 500hz
+    """
 
     def __init__(self, root, **kwargs):
-        """
-        While waiting for MIMIC 3
-
-        Source
-        https://www.sciencedirect.com/science/article/pii/S1746809420300434
-        Section 3.2.1
-        
-        This dataset, 'MARSH', includes respiratory signals as part of the study "Fusion enhancement for tracking of 
-        respiratory rate through intrinsic mode functions in photoplethysmography." It is meant to support academic research, 
-        particularly on algorithm development tools.
-        
-        Contents:
-        
-        Data.txt (age, gender, height, weight, systole, diastole, [respectively])
-        ECG.mat (raw ECG data)
-        ECG_annot.mat (annotations for the R peaks in ECG data)
-        IP.mat (Raw IP data)
-        IP_annot.mat (annotations for the local maxima of IP data [end of inspiration phase])
-        NASAL.mat (Thermistor mask data)
-        NASAL_annot.mat (annotations for the local maxima of thermistor mask data [end of inspiration phase])
-        PPG.mat (Raw PPG signal data)
-        
-        Sample_rates ECG, IP is 250hz
-        
-        PPG is 500hz
-        """
         super().__init__(root)
         # This is the file structure of each sample in MARSH
         self.sample_rate_map = {
@@ -97,6 +97,26 @@ class MarshData(Data):
 
 
 class FantasiaData(Data):
+    """
+    Fantasia Database expanded (March 2, 2003, midnight)
+
+    A subset of data from the Fantasia Database has been available here for several years; the remainder of the database 
+    is now available. It consists of ECG and respiration recordings, with beat annotations, from 20 young and 20 elderly 
+    subjects, all rigorously screened as healthy, in sinus rhythm during a resting state (two hours each). Half of the 
+    recordings also include (uncalibrated) continuous noninvasive blood pressure signals.
+
+    From  Virtual Respiratory Rate Sensors 5-A: An Example of A Smartphone-Based Integrated and 
+    Multiparametric mHealth Gateway
+    
+    A. Analysis on the PhysioNet Fantasia Database
+        The PhysioNet Fantasia database contains data of
+        young (21–34 year old) and elderly (68–85) healthy subjects,
+        who underwent 120 min of continuous supine rest, while
+        the ECG signal and respiration signals were recorded with
+        clinical instrumentation at a sample rate of 250 Hz. The
+        respiratory activity has been acquired as well, by using a
+        respiration belt [18]. 
+    """
     
     songs = {
         1: {"name": "Toccata and Fugue in D Minor", "times": {"start": 0, "end": 9*60 + 20}},
@@ -110,27 +130,6 @@ class FantasiaData(Data):
     }
 
     def __init__(self, root, **kwargs):
-        """
-        Fantasia Database expanded (March 2, 2003, midnight)
-
-        A subset of data from the Fantasia Database has been available here for several years; the remainder of the database 
-        is now available. It consists of ECG and respiration recordings, with beat annotations, from 20 young and 20 elderly 
-        subjects, all rigorously screened as healthy, in sinus rhythm during a resting state (two hours each). Half of the 
-        recordings also include (uncalibrated) continuous noninvasive blood pressure signals.
-
-        From  Virtual Respiratory Rate Sensors 5-A: An Example of A Smartphone-Based Integrated and 
-        Multiparametric mHealth Gateway
-        
-        A. Analysis on the PhysioNet Fantasia Database
-            The PhysioNet Fantasia database contains data of
-            young (21–34 year old) and elderly (68–85) healthy subjects,
-            who underwent 120 min of continuous supine rest, while
-            the ECG signal and respiration signals were recorded with
-            clinical instrumentation at a sample rate of 250 Hz. The
-            respiratory activity has been acquired as well, by using a
-            respiration belt [18]. Among all data, ten young and ten elderly
-            subjects have been randomly chosen.
-        """
         super().__init__(root)
         
         self.sample_rate_map = {
@@ -158,9 +157,11 @@ class FantasiaData(Data):
 
 
 class Dataset:
+    """
+    To organize samples from a single data source.
+    __getitem__ should call the load function from each of the data classes
+    """
 
-    # to organize samples from a single data source,
-    # getitem should call the load function from each of the data classes
     # 
     def __init__(self):
         # TODO
