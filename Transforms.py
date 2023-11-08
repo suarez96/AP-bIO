@@ -134,7 +134,8 @@ class CWT(Transform):
         higher_bound: float=1, 
         resolution: int=10, 
         plot: bool=False, 
-        wavelet: str='cmor5-0.8125'
+        wavelet: str='cmor5-0.8125',
+        sample_rate=None,
     ):
         self.lower_bound = lower_bound
         self.higher_bound = higher_bound
@@ -144,18 +145,22 @@ class CWT(Transform):
         wavelet_params = self.wavelet.split('cmor')[1]
         self.wavelet_A_param = float(wavelet_params.split('-')[0])
         self.wavelet_B_param = float(wavelet_params.split('-')[1])
+        self.freq_space = np.linspace(self.lower_bound, self.higher_bound, self.resolution)
+        if sample_rate is None:
+            self.scales = None
+        else:
+            self.scales = (self.wavelet_B_param*sample_rate)/self.freq_space
 
     def _transform(self, x, signal):
         # remove DC level
         x -= x.mean()
-        freq_space = np.linspace(self.lower_bound, self.higher_bound, self.resolution)
-        scales = (self.wavelet_B_param*signal.sample_rate)/freq_space
-        coefficients, frequencies = pywt.cwt(x, scales, self.wavelet, sampling_period=1/signal.sample_rate)
-        coefficients = np.abs(coefficients)[::-1, :] # flip to get ascending frequency
+        if self.scales is None:
+            self.scales = (self.wavelet_B_param*signal.sample_rate)/self.freq_space
+        coefficients, frequencies = pywt.cwt(x, self.scales, self.wavelet, sampling_period=1/signal.sample_rate)
         if self.plot:
             plt.figure(figsize=(9, 3))
             plt.imshow(
-                coefficients,  # Replace with your data or coefficients
+                np.abs(coefficients)[::-1, :],  # Replace with your data or coefficients
                 aspect='auto',
                 extent=[0, coefficients.shape[1]/signal.sample_rate, self.lower_bound, self.higher_bound], 
                 interpolation='bilinear',
