@@ -5,6 +5,8 @@ from Signal import Signal
 import neurokit2 as nk
 import pywt
 import matplotlib.pyplot as plt
+import math
+import scipy
 
 class Transform(ABC):
     """
@@ -170,3 +172,85 @@ class CWT(Transform):
             plt.title(f'CWT {signal.type}')
             plt.show()
         return coefficients
+
+# static transforms
+def phase_coherence(angles):
+    return np.sqrt((np.sum(np.cos(angles)))**2 + (np.sum(np.sin(angles)))**2) / np.shape(angles)[0]
+def angles_between_wavelet_coefficients(coeffs1, coeffs2):
+    return np.angle(coeffs1) - np.angle(coeffs2)
+def WPC_of_coeffs(coeffs1, coeffs2):
+    return phase_coherence(angles_between_wavelet_coefficients(coeffs1, coeffs2))
+
+def WPC(coeffs1, coeffs2, freq, fs=250, num_cyc=1):
+    """
+    Args:
+    
+    """
+ 
+    [num_freqs, sig_len] = coeffs1.shape
+    window_size = (1./freq)*num_cyc
+    
+    # number of samples for the PC matrix based on smallest window
+    x0 = num_cyc * fs / freq[-1]
+    M = math.floor(sig_len / x0)
+    PC = np.zeros([num_freqs, M])
+    PC_norm = np.zeros([num_freqs, M])
+    t = np.linspace(0, M/freq[-1], PC_norm.shape[1])
+    
+    #print(num_freqs, sig_len, freq.shape)
+    #print(window_size)
+    for f_idx in range(freq.shape[0]):
+        # split sample into windows of num_cyc cycles
+        win_len_sec = window_size[f_idx] # in seconds
+        #print("Window length:", win_len_sec)
+        win_len = math.floor(win_len_sec * fs) # in samples
+        num_windows = math.floor(sig_len / win_len)
+        #print(win_len_sec, win_len, num_windows)
+        pc_f = np.zeros([num_windows])
+        for w_idx in range(num_windows):
+            start_idx = w_idx*win_len
+            end_idx = start_idx + win_len
+            #print(start_idx, end_idx)
+            pc_f[w_idx] = WPC_of_coeffs(coeffs1[f_idx,start_idx:end_idx],
+                                        coeffs2[f_idx,start_idx:end_idx])
+            #print(pc_f[w_idx])
+        
+        resampled_pc_f = scipy.signal.resample(pc_f, M)
+        PC[f_idx,:] = np.transpose(resampled_pc_f)
+        PC_norm[f_idx,:] = np.transpose(resampled_pc_f)
+
+        if num_windows < M:
+            maxpc = np.max(resampled_pc_f)
+            if maxpc > 1:
+                PC_norm[f_idx,:] = np.transpose(resampled_pc_f) / maxpc
+
+    return t, PC_norm
+
+def gauss_kernel(l=5, sig=1):
+    """
+    https://stackoverflow.com/questions/29731726/how-to-calculate-a-gaussian-kernel-matrix-efficiently-in-numpy
+    creates gaussian kernel with side length `l` and a sigma of `sig`
+    """
+    ax = np.linspace(-(l - 1) / 2., (l - 1) / 2., l)
+    gauss = np.exp(-0.5 * np.square(ax) / np.square(sig))
+    kernel = np.outer(gauss, gauss)
+    return kernel / np.sum(kernel)
+
+def upsample_and_blur(t=None, a=None, x_rep=3, y_rep=3, kernel_size=5):
+    if a is not None:
+        upsample_a = np.repeat(a, y_rep, axis=1).repeat(x_rep, axis=0)
+    else:
+        upsample_a = None
+
+    if t is not None:
+        upsample_t = np.linspace(t[0], t[-1], upsample_a.shape[1])
+    else:
+        upsample_t = None
+    if upsample_a is not None:
+        upsample_a = scipy.signal.convolve2d(
+            upsample_a,
+            gauss_kernel(l=kernel_size),
+            mode='same'
+        )
+        
+    return upsample_t, upsample_a
