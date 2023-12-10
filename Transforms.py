@@ -176,8 +176,10 @@ class CWT(Transform):
 # static transforms
 def phase_coherence(angles):
     return np.sqrt((np.sum(np.cos(angles)))**2 + (np.sum(np.sin(angles)))**2) / np.shape(angles)[0]
+
 def angles_between_wavelet_coefficients(coeffs1, coeffs2):
     return np.angle(coeffs1) - np.angle(coeffs2)
+
 def WPC_of_coeffs(coeffs1, coeffs2):
     return phase_coherence(angles_between_wavelet_coefficients(coeffs1, coeffs2))
 
