@@ -40,6 +40,15 @@ class Data(ABC):
     def ECG_ENV(self):
         return self.data['ECG_ENV']
 
+    def ECG_annot(self):
+        return self.data['ECG_annot']
+
+    def IP_annot(self):
+        return self.data['IP_annot']
+
+    def NASAL_annot(self):
+        return self.data['NASAL_annot']
+
     # should have an option according to which type of signal we want to plot
     def plot_all(self, time_ranges=[None], sample_rate=250):
         raise NotImplementedError
