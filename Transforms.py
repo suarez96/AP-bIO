@@ -226,7 +226,7 @@ def WPC(coeffs1, coeffs2, freq, fs=250, num_cyc=1):
             if maxpc > 1:
                 PC_norm[f_idx,:] = np.transpose(resampled_pc_f) / maxpc
 
-    return t, PC_norm
+    return t, PC_norm, PC
 
 def gauss_kernel(l=5, sig=1):
     """
