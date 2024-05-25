@@ -28,12 +28,14 @@ class Signal:
         filepath: str, 
         _type: str, 
         data: np.array = None,
-        sample_rate: int = 250
+        sample_rate: int = 250,
+        verbose=True
     ):
         self.format = format
         self.filepath = filepath
         self.type = _type
         self.sample_rate = sample_rate
+        self.verbose = verbose
         try:
             self.load_fn = {
                 'mat': self.mat_loader,
@@ -110,7 +112,7 @@ class Signal:
         Load from .mat file
         """
         x = loadmat(filepath)[_type]
-        print(self.type, "shape: ", x.shape)
+        if self.verbose: print(self.type, "shape: ", x.shape)
         return x.flatten()
         
     def dat_loader(self, filepath, _type):

@@ -96,12 +96,21 @@ class MarshData(Data):
         for fn, sample_rate in self.sample_rate_map.items():
             meta = fn.split('.')[0]
             self.data[meta] = Signal(
-                format='mat', filepath=os.path.join(self.root, fn+'.mat'), _type=meta, sample_rate=sample_rate
+                format='mat',
+                filepath=os.path.join(self.root, fn+'.mat'),
+                _type=meta,
+                sample_rate=sample_rate,
+                verbose=kwargs.get("verbose", True)
             )
 
         _, ecg_envelope = Transforms.SplineEnvelope(**kwargs)(self.ECG())
         self.data['ECG_ENV'] = Signal(
-            data=ecg_envelope, format='mat', filepath="N/A", _type='ECG_ENV', sample_rate=self.sample_rate_map['ECG']
+            data=ecg_envelope,
+            format='mat',
+            filepath="N/A",
+            _type='ECG_ENV',
+            sample_rate=self.sample_rate_map['ECG'],
+            verbose=kwargs.get("verbose", True)
         )
 
 
@@ -149,7 +158,11 @@ class FantasiaData(Data):
         # load each signal using wfdb.rdsamp(os.path.abspath(fp_trimmed)) function
         # fantasia only has 2 signal types, both at 250hz
         joined_signal = Signal(
-            format='dat', filepath=self.root, _type='N/A', sample_rate=250
+            format='dat',
+            filepath=self.root,
+            _type='N/A',
+            sample_rate=250,
+            verbose=kwargs.get("verbose", True)
         )
         ecg_signal = joined_signal.copy()
         ip_signal = joined_signal.copy()
@@ -161,7 +174,12 @@ class FantasiaData(Data):
         self.data['IP'] = ip_signal
         _, ecg_envelope = Transforms.SplineEnvelope(**kwargs)(self.ECG())
         self.data['ECG_ENV'] = Signal(
-            data=ecg_envelope, format='mat', filepath="N/A", _type='ECG_ENV', sample_rate=self.sample_rate_map['ECG']
+            data=ecg_envelope,
+            format='mat',
+            filepath="N/A",
+            _type='ECG_ENV',
+            sample_rate=self.sample_rate_map['ECG'],
+            verbose=kwargs.get("verbose", True)
         )
 
 

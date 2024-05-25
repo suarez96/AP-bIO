@@ -8,11 +8,55 @@ import matplotlib.pyplot as plt
 import math
 import scipy
 
+        
+def parse_hparams_from_yaml(hparams):
+    params = {}
+    for param, value in h_params.items():
+        fn, p = h_params.split('_')
+        if fn in params:
+            params[fn][p] = value
+        params[fn] = {p: value}
+    return params
+
+def build_transforms(pipeline, pipeline_args = None, search_space=None):
+    """
+    Use the parameters defined in our yaml or in our search space to build
+    the transforms
+    """
+
+    assert pipeline_args is None or search_space is None, "Conflicting Pipeline Hyperparameters. "
+
+    # used for matching string arguments with the python
+    translation_map = {
+        'Crop': Crop,
+        'MeanSubtraction': MeanSubtraction,
+        'MinMaxScale': MinMaxScale,
+        'Detrend': scipy.signal.detrend
+    }
+
+    # TODO main.py file to test this
+    created_pipeline = []
+    if pipeline_args:
+        for transform in pipeline:
+            # parsed arguments if they exist in the transforms
+            if transform in translation_map:
+                created_pipeline.append(
+                    translation_map[transform](pipeline_args[transform])
+                )
+            # default args
+            else:
+                created_pipeline.append(
+                    translation_map[transform]()
+                )
+
+    return created_pipeline
+
 class Transform(ABC):
     """
     Base class. Abstract
     """
-        
+
+
     def __init__(self):
         pass
 
@@ -138,6 +182,7 @@ class CWT(Transform):
         plot: bool=False, 
         wavelet: str='cmor5-0.8125',
         sample_rate=None,
+        **kwargs
     ):
         self.lower_bound = lower_bound
         self.higher_bound = higher_bound
@@ -162,7 +207,7 @@ class CWT(Transform):
         if self.plot:
             plt.figure(figsize=(9, 3))
             plt.imshow(
-                np.abs(coefficients)[::-1, :],  # Replace with your data or coefficients
+                np.abs(coefficients)[::-1, :],  # flip axis
                 aspect='auto',
                 extent=[0, coefficients.shape[1]/signal.sample_rate, self.lower_bound, self.higher_bound], 
                 interpolation='bilinear',
@@ -183,15 +228,61 @@ def angles_between_wavelet_coefficients(coeffs1, coeffs2):
 def WPC_of_coeffs(coeffs1, coeffs2):
     return phase_coherence(angles_between_wavelet_coefficients(coeffs1, coeffs2))
 
-def WPC(coeffs1, coeffs2, freq, fs=250, num_cyc=1):
-    """
-    Args:
+# def WPC(coeffs1, coeffs2, freq, fs=250, num_cyc=1):
+#     """ DEPRECATED IMPLEMENTATION
+#     Args:
     
-    """
+#     """
  
+#     [num_freqs, sig_len] = coeffs1.shape
+#     window_size = (1./freq)*num_cyc
+    
+#     # number of samples for the PC matrix based on smallest window
+#     x0 = num_cyc * fs / freq[-1]
+#     M = math.floor(sig_len / x0)
+#     PC = np.zeros([num_freqs, M])
+#     PC_norm = np.zeros([num_freqs, M])
+#     t = np.linspace(0, M/freq[-1], PC_norm.shape[1])
+    
+#     #print(num_freqs, sig_len, freq.shape)
+#     #print(window_size)
+#     for f_idx in range(freq.shape[0]):
+#         # split sample into windows of num_cyc cycles
+#         win_len_sec = window_size[f_idx] # in seconds
+#         #print("Window length:", win_len_sec)
+#         win_len = math.floor(win_len_sec * fs) # in samples
+#         num_windows = math.floor(sig_len / win_len)
+#         #print(win_len_sec, win_len, num_windows)
+#         pc_f = np.zeros([num_windows])
+#         for w_idx in range(num_windows):
+#             start_idx = w_idx*win_len
+#             end_idx = start_idx + win_len
+#             #print(start_idx, end_idx)
+#             pc_f[w_idx] = WPC_of_coeffs(coeffs1[f_idx,start_idx:end_idx],
+#                                         coeffs2[f_idx,start_idx:end_idx])
+#             #print(pc_f[w_idx])
+#         assert pc_f.max() <= 1
+#         resampled_pc_f = scipy.signal.resample(pc_f, M)
+#         # this will fail, that's why we use PC_norm instead of PC
+#         # assert resampled_pc_f.max() <= 1.0000001
+#         PC[f_idx,:] = np.transpose(resampled_pc_f)
+#         PC_norm[f_idx,:] = np.transpose(resampled_pc_f)
+
+#         if num_windows < M:
+#             maxpc = np.max(resampled_pc_f)
+#             if maxpc > 1:
+#                 PC_norm[f_idx,:] = np.transpose(resampled_pc_f) / maxpc
+
+#     return t, PC_norm, PC
+
+def WPC(cwt1, cwt2, fs=250, freq=np.linspace(0.1, 0.3, 60), num_cyc=5):
+   
+    coeffs1 = cwt1
+    coeffs2 = cwt2
+   
     [num_freqs, sig_len] = coeffs1.shape
     window_size = (1./freq)*num_cyc
-    
+   
     # number of samples for the PC matrix based on smallest window
     x0 = num_cyc * fs / freq[-1]
     M = math.floor(sig_len / x0)
@@ -199,15 +290,11 @@ def WPC(coeffs1, coeffs2, freq, fs=250, num_cyc=1):
     PC_norm = np.zeros([num_freqs, M])
     t = np.linspace(0, M/freq[-1], PC_norm.shape[1])
     
-    #print(num_freqs, sig_len, freq.shape)
-    #print(window_size)
     for f_idx in range(freq.shape[0]):
         # split sample into windows of num_cyc cycles
         win_len_sec = window_size[f_idx] # in seconds
-        #print("Window length:", win_len_sec)
         win_len = math.floor(win_len_sec * fs) # in samples
         num_windows = math.floor(sig_len / win_len)
-        #print(win_len_sec, win_len, num_windows)
         pc_f = np.zeros([num_windows])
         for w_idx in range(num_windows):
             start_idx = w_idx*win_len
@@ -215,18 +302,13 @@ def WPC(coeffs1, coeffs2, freq, fs=250, num_cyc=1):
             #print(start_idx, end_idx)
             pc_f[w_idx] = WPC_of_coeffs(coeffs1[f_idx,start_idx:end_idx],
                                         coeffs2[f_idx,start_idx:end_idx])
-            #print(pc_f[w_idx])
-        
-        resampled_pc_f = scipy.signal.resample(pc_f, M)
+       
+        resampled_pc_f = np.clip(scipy.signal.resample_poly(pc_f, M, num_windows), 0, 1)
+       
+        # consider whether any magnitudes > 1
         PC[f_idx,:] = np.transpose(resampled_pc_f)
-        PC_norm[f_idx,:] = np.transpose(resampled_pc_f)
 
-        if num_windows < M:
-            maxpc = np.max(resampled_pc_f)
-            if maxpc > 1:
-                PC_norm[f_idx,:] = np.transpose(resampled_pc_f) / maxpc
-
-    return t, PC_norm, PC
+    return t, None, PC
 
 def gauss_kernel(l=5, sig=1):
     """
