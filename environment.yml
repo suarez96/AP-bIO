@@ -116,7 +116,6 @@ dependencies:
       - contourpy==1.2.1
       - cycler==0.12.1
       - cymem==2.0.8
-      - dabest==2023.2.14
       - datetime==5.5
       - debugpy==1.8.1
       - dill==0.3.8
@@ -179,7 +178,7 @@ dependencies:
       - notebook==5.7.5
       - notebook-shim==0.2.4
       - numba==0.59.1
-      - numpy==1.23.5
+      - numpy
       - onnx==1.16.0
       - onnxconverter-common==1.14.0
       - onnxmltools==1.12.0
