@@ -12,6 +12,10 @@ hparams:
     convolve_length: 1 # smoothing factor for training
     jump_size: 10 # num samples that sliding window jumps forward for every train signal
     batchSize: 128 # data loader batch size
+    seqLen: 512
+    lr: 0.0003
+    iters: 15
+
   test:
     Crop_start: 420 # 7th minute in marsh data is unlabored breathing
     Crop_end: 480
@@ -23,18 +27,24 @@ cwt_evaluation:
 
 # transforms used in each global time series
 # TODO explore highpassing the ecg to remove baseline wander
-ecg_pipeline:
+global_ecg_pipeline:
   - Crop
   - MinMaxScale # can be removed
   - MeanSubtraction
   - Detrend
 
-ip_pipeline:
+global_ip_pipeline:
   - Crop
   - MinMaxScale # can be removed
   - MeanSubtraction
   - Detrend
 
 # transforms for each individual time series used in training
+ecg_pipeline:
+  - Detrend
+
+batch_ip_pipeline:
+  - pass
+
 dataloader_pipeline:
   - pass
