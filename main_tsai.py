@@ -9,6 +9,16 @@ parser.add_argument('-y', '--yaml_path', type=str, help='Filepath to YAML file w
 parser.add_argument('-m', '--marsh_path', type=str, help='Filepath to MARSH root directory', default='../MARSH/')
 args = parser.parse_args()
 
+def run(args):
+
+    train_loader = Dataloader.build_loader()
+    test_loader = Dataloader.build_loader()
+    model = Models.TSAITransformer() # Models.BidirectionalRNN()
+    model.train(train_loader)
+    model.eval(test_loader, args['metrics'])
+    model.export(format='onnx')
+
+
 if __name__ == '__main__':
     
     run(args)
