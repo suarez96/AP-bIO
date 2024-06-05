@@ -3,6 +3,8 @@ from train import run
 import train_utils
 import Dataloader
 import Models
+import logging
+logger = logging.getLogger(__name__)
 
 parser = argparse.ArgumentParser(
     description='Script to train breathing signal predictor based on ECG input.'
@@ -16,13 +18,12 @@ def run(args):
 
     args['yaml_args'] = train_utils.load_yaml(args['yaml_path'])
     train_loader, test_loader = Dataloader.build_loaders(args)
-    model = Models.TSAITransformer()
-    assert False
-    # the fastai object that manages the training loop
-    learner = Learner(train_loader, model, loss_func=MSELossFlat(), metrics=rmse, cbs=ShowGraph())
-    model.train(train_loader)
-    model.eval(test_loader, args['metrics'])
-    model.export(format='onnx')
+    model = Models.TSAITransformer(dataloader=train_loader, seq_len=args['yaml_args']['hparams']['seq_len'])
+    logging.basicConfig(filename=f'logs/{model.run_id}_train.log', level=logging.INFO)
+    model.train(args['yaml_args']['hparams']['iters'], args['yaml_args']['hparams']['lr'])
+    # assert False
+    # model.eval(test_loader, args['metrics'])
+    model.export()
 
 
 if __name__ == '__main__':
