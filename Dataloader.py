@@ -9,6 +9,8 @@ import numpy as np
 from tqdm import tqdm
 from operator import itemgetter
 import constants
+import logging
+logger = logging.getLogger(__name__)
 
 def build_ECG_input_windows(
         args: dict,
@@ -37,7 +39,7 @@ def build_ECG_input_windows(
     for subject in tqdm(dataset, desc="building dataloader..."):
         
         subject_id = int(subject.ECG().filepath.split('/')[-2])
-        print("Subject", subject_id)
+        logger.info("Including subject:", subject_id)
 
         input_ecg_raw = subject.ECG().transform(transforms=global_ecg_pipeline)
         input_ip_raw = subject.IP().transform(transforms=global_ip_pipeline)
