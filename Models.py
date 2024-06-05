@@ -29,8 +29,7 @@ class TSAITransformer(Model):
         super().__init__()
         # Use a specific architecture directly, e.g., TST for ResNet-like behavior
         model = TST(dls.vars, dls.c, seq_len=seq_len)
-        learn = Learner(dls, model, loss_func=MSELossFlat(), metrics=rmse, cbs=ShowGraph())
-        return learn
+        return model
 
 
 class BidirectionalRNN(Model):
