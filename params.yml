@@ -5,20 +5,15 @@ data:
 # format:
 # <Transform Name>_<param name>: <value>
 hparams:
-  train:
-    Crop_start: 0 # first 3 minutes in marsh data are unlabored breathing
-    Crop_end: 180
-    mask_probability: 0.08 # <NOT USED as of may 17th, 2024> probability of 
-    convolve_length: 1 # smoothing factor for training
-    jump_size: 10 # num samples that sliding window jumps forward for every train signal
-    batchSize: 128 # data loader batch size
-    seqLen: 512
-    lr: 0.0003
-    iters: 15
+  jump_size: 10 # num samples that sliding window jumps forward for every train signal
+  batch_size: 128 # data loader batch size
+  seq_len: 512
+  lr: 0.0003
+  iters: 15
 
-  test:
-    Crop_start: 420 # 7th minute in marsh data is unlabored breathing
-    Crop_end: 480
+  # test:
+  #   Crop_start: 420 # 7th minute in marsh data is unlabored breathing
+  #   Crop_end: 480
 
 cwt_evaluation:
   low: 0.1
@@ -28,23 +23,25 @@ cwt_evaluation:
 # transforms used in each global time series
 # TODO explore highpassing the ecg to remove baseline wander
 global_ecg_pipeline:
-  - Crop
-  - MinMaxScale # can be removed
-  - MeanSubtraction
-  - Detrend
+  Crop:
+    - start: 0 # first 3 minutes in marsh data are unlabored breathing
+    - end: 180
+  MinMaxScale: # can be removed
+  MeanSubtraction:
+  Detrend:
 
 global_ip_pipeline:
-  - Crop
-  - MinMaxScale # can be removed
-  - MeanSubtraction
-  - Detrend
+  Crop:
+    - start: 0 # first 3 minutes in marsh data are unlabored breathing
+    - end: 180
+  MinMaxScale: # can be removed
+  MeanSubtraction:
+  Detrend:
 
 # transforms for each individual time series used in training
-ecg_pipeline:
-  - Detrend
+batch_ecg_pipeline:
+  Detrend:
 
 batch_ip_pipeline:
-  - pass
 
 dataloader_pipeline:
-  - pass
