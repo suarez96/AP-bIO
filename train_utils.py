@@ -12,7 +12,18 @@ import onnxmltools
 import onnxruntime as rt
 from skl2onnx.common.data_types import FloatTensorType
 from tqdm.auto import tqdm
+import yaml
 
+def load_yaml(path):
+
+    with open(path) as stream:
+        try:
+            parsed_yaml = yaml.safe_load(stream)
+        except yaml.YAMLError as e:
+            print(e)
+            return None
+    
+    return parsed_yaml
 
 def predict(model_or_session, data):
     if isinstance(model_or_session, xgb.XGBRegressor):

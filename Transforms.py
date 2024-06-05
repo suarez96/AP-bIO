@@ -8,17 +8,7 @@ import matplotlib.pyplot as plt
 import math
 import scipy
 
-        
-def parse_hparams_from_yaml(hparams):
-    params = {}
-    for param, value in h_params.items():
-        fn, p = h_params.split('_')
-        if fn in params:
-            params[fn][p] = value
-        params[fn] = {p: value}
-    return params
-
-def build_transforms(pipeline, pipeline_args = None, search_space=None):
+def build_transforms(pipeline=None, pipeline_args=None, search_space=None):
     """
     Use the parameters defined in our yaml or in our search space to build
     the transforms
@@ -31,23 +21,21 @@ def build_transforms(pipeline, pipeline_args = None, search_space=None):
         'Crop': Crop,
         'MeanSubtraction': MeanSubtraction,
         'MinMaxScale': MinMaxScale,
-        'Detrend': scipy.signal.detrend
+        'Detrend': Detrend
     }
 
-    # TODO main.py file to test this
     created_pipeline = []
-    if pipeline_args:
-        for transform in pipeline:
-            # parsed arguments if they exist in the transforms
-            if transform in translation_map:
-                created_pipeline.append(
-                    translation_map[transform](pipeline_args[transform])
-                )
-            # default args
-            else:
-                created_pipeline.append(
-                    translation_map[transform]()
-                )
+    for transform_name, transform_params in pipeline.items():
+
+        # unpack nonetype or list of dicts into a single dict
+        args = {}
+        if transform_params is not None:     
+            for p in transform_params:
+                args.update(p)
+
+        created_pipeline.append(
+            translation_map[transform_name](**args)
+        )
 
     return created_pipeline
 
@@ -88,6 +76,7 @@ class Crop(Transform):
         length: length of crop in seconds
         """
         assert end or length, "One of 'end' or 'length' must be defined"
+        super().__init__()
         self.start = start
         self.end = end
         self.length = length
@@ -96,7 +85,7 @@ class Crop(Transform):
     def _transform(self, x, signal):
         try:
             sample_rate = signal.sample_rate
-        except ValueError:#AttributeError:
+        except AttributeError:
             sample_rate = self.default_sample_rate
         
         if self.end is not None:
@@ -110,6 +99,7 @@ class SplineEnvelope(Transform):
     """
 
     def __init__(self, n_spline_pts=None, **kwargs):
+        super().__init__()
         self.n_spline_pts = n_spline_pts
         self.peak_extraction_method = kwargs.get("peak_extraction_method", "martinez2004")
         self.correct_artifacts = kwargs.get("correct_artifacts", False)
@@ -152,10 +142,22 @@ class MeanSubtraction(Transform):
     """
 
     def __init__(self):
-        pass
+        super().__init__()
         
     def _transform(self, x, signal):
-        return x-x.mean()
+        return x-x.mean(axis=-1, keepdims=True)
+
+class Detrend(Transform):
+    """
+    In practice, removes DC. This method will make any signal zero-mean.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.fn = scipy.signal.detrend
+        
+    def _transform(self, x, signal):
+        return self.fn(x)
 
 class MinMaxScale(Transform):
     """
@@ -163,7 +165,7 @@ class MinMaxScale(Transform):
     """
 
     def __init__(self):
-        pass
+        super().__init__()
         
     def _transform(self, x, signal):
         return (x-x.min())/(x.max()-x.min())
@@ -228,52 +230,6 @@ def angles_between_wavelet_coefficients(coeffs1, coeffs2):
 def WPC_of_coeffs(coeffs1, coeffs2):
     return phase_coherence(angles_between_wavelet_coefficients(coeffs1, coeffs2))
 
-# def WPC(coeffs1, coeffs2, freq, fs=250, num_cyc=1):
-#     """ DEPRECATED IMPLEMENTATION
-#     Args:
-    
-#     """
- 
-#     [num_freqs, sig_len] = coeffs1.shape
-#     window_size = (1./freq)*num_cyc
-    
-#     # number of samples for the PC matrix based on smallest window
-#     x0 = num_cyc * fs / freq[-1]
-#     M = math.floor(sig_len / x0)
-#     PC = np.zeros([num_freqs, M])
-#     PC_norm = np.zeros([num_freqs, M])
-#     t = np.linspace(0, M/freq[-1], PC_norm.shape[1])
-    
-#     #print(num_freqs, sig_len, freq.shape)
-#     #print(window_size)
-#     for f_idx in range(freq.shape[0]):
-#         # split sample into windows of num_cyc cycles
-#         win_len_sec = window_size[f_idx] # in seconds
-#         #print("Window length:", win_len_sec)
-#         win_len = math.floor(win_len_sec * fs) # in samples
-#         num_windows = math.floor(sig_len / win_len)
-#         #print(win_len_sec, win_len, num_windows)
-#         pc_f = np.zeros([num_windows])
-#         for w_idx in range(num_windows):
-#             start_idx = w_idx*win_len
-#             end_idx = start_idx + win_len
-#             #print(start_idx, end_idx)
-#             pc_f[w_idx] = WPC_of_coeffs(coeffs1[f_idx,start_idx:end_idx],
-#                                         coeffs2[f_idx,start_idx:end_idx])
-#             #print(pc_f[w_idx])
-#         assert pc_f.max() <= 1
-#         resampled_pc_f = scipy.signal.resample(pc_f, M)
-#         # this will fail, that's why we use PC_norm instead of PC
-#         # assert resampled_pc_f.max() <= 1.0000001
-#         PC[f_idx,:] = np.transpose(resampled_pc_f)
-#         PC_norm[f_idx,:] = np.transpose(resampled_pc_f)
-
-#         if num_windows < M:
-#             maxpc = np.max(resampled_pc_f)
-#             if maxpc > 1:
-#                 PC_norm[f_idx,:] = np.transpose(resampled_pc_f) / maxpc
-
-#     return t, PC_norm, PC
 
 def WPC(cwt1, cwt2, fs=250, freq=np.linspace(0.1, 0.3, 60), num_cyc=5):
    

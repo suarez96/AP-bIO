@@ -1,5 +1,4 @@
 from train_utils import get_rolling_windows
-import yaml
 import os
 from train_utils import evaluate, train, export, make_train_test_sets, build_model_name, predict
 from scipy.signal import detrend
@@ -7,6 +6,8 @@ from Data import MarshData
 import Transforms
 import os
 import numpy as np
+
+import yaml
 
 def load_yaml(path):
 
@@ -29,16 +30,6 @@ def run(
     between training runs on the same computer, ie. the path to the yaml params and the path
     to the training data. Training hyperparameters are set in the yaml parameter file.
     """
-
-    # load all data. verbose=True would print out all signal shapes
-    marsh_dataset = [
-        MarshData(
-            os.path.join(
-                cmd_args.marsh_path,
-                subject_dir
-            ), verbose=False
-        ) for subject_dir in sorted(os.listdir(cmd_args.marsh_path)) if len(subject_dir) == 4
-    ]
 
     # separate function?
     yaml_args = load_yaml(cmd_args.yaml_path)
