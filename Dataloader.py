@@ -6,10 +6,13 @@ from train_utils import get_rolling_windows
 from tsai.all import get_splits, TSRegression, TSStandardize, get_ts_dls
 import os
 import numpy as np
+from tqdm import tqdm
+from operator import itemgetter
+import constants
 
 def build_ECG_input_windows(
         args: dict,
-        dataset: list
+        dataset
     ):
     """
     Build the rolling windows from the ECG data inside each of the subject
@@ -31,7 +34,10 @@ def build_ECG_input_windows(
     )
 
     # take global ECG and break it into parts after applying transform
-    for subject in dataset:
+    for subject in tqdm(dataset, desc="building dataloader..."):
+        
+        subject_id = int(subject.ECG().filepath.split('/')[-2])
+        print("Subject", subject_id)
 
         input_ecg_raw = subject.ECG().transform(transforms=global_ecg_pipeline)
         input_ip_raw = subject.IP().transform(transforms=global_ip_pipeline)
@@ -83,16 +89,19 @@ def build_loaders(args, test=False, shuffle_test=False):
     in time order
     """
 
-    dataset = [
-        MarshData(os.path.join(args['marsh_path'], i)) for i in os.listdir(args['marsh_path']) if len(i) == 4
-    ]
+    dataset = {
+        int(i): MarshData(os.path.join(args['marsh_path'], i), verbose=False) for i in tqdm(os.listdir(args['marsh_path']), desc='traversing MARSH data...') if len(i) == 4
+    }
 
+    train_idxs = constants.argsort_subject_ids[:int(args['yaml_args']['data']['train_samples'])]
+    
     # TODO add shuffle or tracking for subjects by ID
-    train_dataset = dataset[:int(args['yaml_args']['data']['train_samples'])]
+    train_dataset = itemgetter(*train_idxs)(dataset)
     train_dataloader = loader_from_dataset(args=args, dataset=train_dataset)
     
     if test:
-        test_dataset = dataset[int(args['yaml_args']['data']['train_samples']):]
+        test_idxs = constants.argsort_subject_ids[int(args['yaml_args']['data']['train_samples']):]
+        test_dataset = itemgetter(*test_idxs)(dataset)
         test_dataloader = loader_from_dataset(args=args, dataset=test_dataset, valid_size=0, shuffle=shuffle_test)
     else:
         test_dataloader = None
