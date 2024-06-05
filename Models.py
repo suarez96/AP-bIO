@@ -19,6 +19,7 @@ class Model(ABC):
         raise NotImplementedError
 
     def export(self):
+        # TODO add params.yml saving as well
         raise NotImplementedError
 
 class TSAITransformer(Model):
@@ -44,6 +45,7 @@ class TSAITransformer(Model):
             model_path.replace(".pkl", "_new.pkl")
         logger.info(f"{model_path} saved")
         self.learner.export(model_path)
+        
 
 class BidirectionalRNN(Model):
     

@@ -3,6 +3,8 @@ from train import run
 import train_utils
 import Dataloader
 import Models
+import shutil # also move to export TODO
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -24,6 +26,9 @@ def run(args):
     # assert False
     # model.eval(test_loader, args['metrics'])
     model.export()
+    # TODO MOVE TO EXPORT METHOD
+    shutil.copyfile(args['yaml_path'], f'params/{model.run_id}_params.yml')
+
 
 
 if __name__ == '__main__':
