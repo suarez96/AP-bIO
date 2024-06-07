@@ -1,14 +1,14 @@
 data:
-  train_samples: 8
+  train_samples: 14
 
 # format:
 # <Transform Name>_<param name>: <value>
 hparams:
   jump_size: 10 # num samples that sliding window jumps forward for every train signal
   batch_size: 128 # data loader batch size
-  seq_len: 32
+  seq_len: 256
   lr: 0.0003
-  iters: 1
+  iters: 15
 
   # test:
   #   Crop_start: 420 # 7th minute in marsh data is unlabored breathing
