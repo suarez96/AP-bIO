@@ -1,5 +1,5 @@
 data:
-  train_samples: 14
+  train_samples: 2
 
 # format:
 # <Transform Name>_<param name>: <value>
