@@ -7,6 +7,7 @@ import pywt
 import matplotlib.pyplot as plt
 import math
 import scipy
+from tqdm import tqdm
 
 def build_transforms(pipeline=None, pipeline_args=None, search_space=None):
     """
@@ -231,7 +232,7 @@ def WPC_of_coeffs(coeffs1, coeffs2):
     return phase_coherence(angles_between_wavelet_coefficients(coeffs1, coeffs2))
 
 
-def WPC(cwt1, cwt2, fs=250, freq=np.linspace(0.1, 0.3, 60), num_cyc=5):
+def WPC(cwt1, cwt2, fs=250, freq=np.linspace(0.1, 0.55, 60), num_cyc=5):
    
     coeffs1 = cwt1
     coeffs2 = cwt2
@@ -246,7 +247,7 @@ def WPC(cwt1, cwt2, fs=250, freq=np.linspace(0.1, 0.3, 60), num_cyc=5):
     PC_norm = np.zeros([num_freqs, M])
     t = np.linspace(0, M/freq[-1], PC_norm.shape[1])
     
-    for f_idx in range(freq.shape[0]):
+    for f_idx in tqdm(range(freq.shape[0]), desc="Calculating WPC"):
         # split sample into windows of num_cyc cycles
         win_len_sec = window_size[f_idx] # in seconds
         win_len = math.floor(win_len_sec * fs) # in samples

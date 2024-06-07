@@ -25,7 +25,7 @@ def run(args):
     print(f"Log: {model.run_id}")
     logging.basicConfig(filename=f'logs/{model.run_id}_eval.log', level=logging.INFO)
     # assert False
-    model.eval(test_loader)#, args['metrics'])
+    model.eval(test_loader, **args['yaml_args']['cwt_evaluation'])
 
 
 

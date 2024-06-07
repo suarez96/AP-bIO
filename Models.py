@@ -3,6 +3,9 @@ from abc import ABC, abstractmethod
 import numpy as np
 import os
 import logging
+import Transforms
+from Signal import Signal
+
 logger = logging.getLogger(__name__)
 
 class Model(ABC):
@@ -46,9 +49,18 @@ class TSAITransformer(Model):
         self.learner.fit_one_cycle(iters, lr)
         logger.info("Training finished")
 
-    def eval(self, dataloader):
+    def eval(self, dataloader, **kwargs):
         logger.info("Evaluating model")
-        print(self.learner.get_preds(dl=dataloader))
+        preds, gt = self.learner.get_preds(dl=dataloader)
+        cwt = Transforms.CWT(plot=True, lower_bound=kwargs.get("lower_bound", 0.1), higher_bound=kwargs.get("higher_bound", 0.55), resolution=kwargs.get("resolution", 60))
+        # remove crop on preds and gt
+        preds = Signal(_type='IP', data=np.array(preds), format='mat', filepath=None) # TODO: fix cwt transform to not depend on signal sample_rate 
+        preds_cwt = cwt(preds)
+        gt = Signal(_type='IP', data=np.array(gt), format='mat', filepath=None)
+        gt_cwt = cwt(gt)
+        print(preds_cwt.shape, gt_cwt.shape)
+        return
+        # return Transforms.WPC(preds_cwt, gt_cwt) TODO: Debug WPC
 
     def export(self):
         model_path = os.path.join(self.export_dir_root, self.framework, f"{self.run_id}.pkl")
