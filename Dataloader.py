@@ -80,7 +80,7 @@ def loader_from_dataset(
     splits = get_splits(tsai_y_train, valid_size=valid_size, stratify=True, random_state=23, shuffle=shuffle, show_plot=False)
     # TODO investigate this step
     tfms  = [None, TSRegression()]
-    dls = get_ts_dls(tsai_X_train, tsai_y_train, splits=splits, tfms=tfms, batch_tfms=batch_tfms, bs=179)#args['yaml_args']['hparams']['batch_size'])
+    dls = get_ts_dls(tsai_X_train, tsai_y_train, splits=splits, tfms=tfms, batch_tfms=batch_tfms, bs=args['yaml_args']['hparams']['batch_size'])
     return dls
 
 def build_loaders(args, train: bool=True, test: bool=False, shuffle_test: bool=False, test_idxs: list=None):

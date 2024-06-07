@@ -144,6 +144,7 @@ class MeanSubtraction(Transform):
 
     def __init__(self):
         super().__init__()
+
         
     def _transform(self, x, signal):
         return x-x.mean(axis=-1, keepdims=True)
