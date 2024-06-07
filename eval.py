@@ -14,17 +14,18 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('-n', '--name', type=str, help='id/name of the model to be tested')
 parser.add_argument('-i', '--indices', type=int, nargs="+", help='ID\'s of subjects to be tested')
+parser.add_argument('-m', '--marsh_path', type=str, help='Filepath to MARSH root directory', default='../MARSH/')
 args = vars(parser.parse_args())
 
 def run(args):
 
-    args['yaml_args'] = train_utils.load_yaml(f"params/{args['yaml_path']}"_params.yml)
-    _, test_loader = Dataloader.build_loaders(args)
-    model = Models.TSAITransformer(dataloader=test_loader, seq_len=args['yaml_args']['hparams']['seq_len'], path=# TODO)
+    args['yaml_args'] = train_utils.load_yaml(f"params/{args['name']}_params.yml")
+    _, test_loader = Dataloader.build_loaders(args, train=False, test=True, test_idxs=args['indices'])
+    model = Models.TSAITransformer(dataloader=test_loader, seq_len=args['yaml_args']['hparams']['seq_len'], path=f"models/tsai/{args['name']}.pkl", cpu=False)
     print(f"Log: {model.run_id}")
-    logging.basicConfig(filename=f'logs/{model.run_id}_train.log', level=logging.INFO)
+    logging.basicConfig(filename=f'logs/{model.run_id}_eval.log', level=logging.INFO)
     # assert False
-    # model.eval(test_loader, args['metrics'])
+    model.eval(test_loader, **args['yaml_args']['cwt_evaluation'])
 
 
 
