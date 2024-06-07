@@ -21,11 +21,11 @@ def run(args):
 
     args['yaml_args'] = train_utils.load_yaml(f"params/{args['name']}_params.yml")
     _, test_loader = Dataloader.build_loaders(args, train=False, test=True, test_idxs=args['indices'])
-    model = Models.TSAITransformer(dataloader=test_loader, seq_len=args['yaml_args']['hparams']['seq_len'], path=f"models/tsai/{args['name']}.pkl")
+    model = Models.TSAITransformer(dataloader=test_loader, seq_len=args['yaml_args']['hparams']['seq_len'], path=f"models/tsai/{args['name']}.pkl", cpu=False)
     print(f"Log: {model.run_id}")
     logging.basicConfig(filename=f'logs/{model.run_id}_eval.log', level=logging.INFO)
     # assert False
-    # model.eval(test_loader, args['metrics'])
+    model.eval(test_loader)#, args['metrics'])
 
 
 

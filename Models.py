@@ -39,12 +39,16 @@ class TSAITransformer(Model):
         if self.path is None:
             self.learner = Learner(dataloader, self.model, loss_func=MSELossFlat(), metrics=rmse)
         else:
-            self.learner = load_learner(self.path)
+            self.learner = load_learner(self.path, cpu=kwargs.get("cpu", True))
 
     def train(self, iters, lr):
         logger.info("Training finished")
         self.learner.fit_one_cycle(iters, lr)
         logger.info("Training finished")
+
+    def eval(self, dataloader):
+        logger.info("Evaluating model")
+        print(self.learner.get_preds(dl=dataloader))
 
     def export(self):
         model_path = os.path.join(self.export_dir_root, self.framework, f"{self.run_id}.pkl")
