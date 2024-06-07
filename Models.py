@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 class Model(ABC):
 
     def __init__(self, export_dir_root='models', path=None, **kwargs):
+        self.path = path
         if path is not None:
-            self.path = path
             self.run_id = path.split("/")[-1].replace(".pkl", "")
         else:
             self.run_id = hex(np.random.randint(0, 8**8))
@@ -40,7 +40,12 @@ class TSAITransformer(Model):
         self.model = TST(dataloader.vars, dataloader.c, seq_len=seq_len)
         # the fastai object that manages the training loop
         if self.path is None:
-            self.learner = Learner(dataloader, self.model, loss_func=MSELossFlat(), metrics=rmse)
+            self.learner = Learner(
+                dataloader,
+                self.model, 
+                loss_func=MSELossFlat(), 
+                metrics=rmse
+            )
         else:
             self.learner = load_learner(self.path, cpu=kwargs.get("cpu", True))
 

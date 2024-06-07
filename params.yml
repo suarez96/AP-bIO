@@ -1,5 +1,5 @@
 data:
-  train_samples: 2
+  train_samples: 3
 
 # format:
 # <Transform Name>_<param name>: <value>
@@ -8,7 +8,7 @@ hparams:
   batch_size: 128 # data loader batch size
   seq_len: 256
   lr: 0.0003
-  iters: 15
+  iters: 2
 
   # test:
   #   Crop_start: 420 # 7th minute in marsh data is unlabored breathing

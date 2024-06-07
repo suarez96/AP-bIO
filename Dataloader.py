@@ -74,13 +74,21 @@ def loader_from_dataset(
     Construct the dataloader based on a train or test list of MarshData/FantasiaData objects.
     shuffle: shuffle data in the loader
     """
-    X_ecg_rolling_train_stack_np, y_ip_train_stack_np = build_ECG_input_windows(args=args, dataset=dataset)
-    tsai_X_train = X_ecg_rolling_train_stack_np.reshape(-1, 1, args['yaml_args']['hparams']['seq_len'])
-    tsai_y_train = y_ip_train_stack_np.reshape(-1, 1)
-    splits = get_splits(tsai_y_train, valid_size=valid_size, stratify=True, random_state=23, shuffle=shuffle, show_plot=False)
+    X_ecg_rolling_stack_np, y_ip_stack_np = build_ECG_input_windows(args=args, dataset=dataset)
+    X_array = X_ecg_rolling_stack_np.reshape(-1, 1, args['yaml_args']['hparams']['seq_len'])
+    y_array = y_ip_stack_np.reshape(-1, 1)
+    assert X_array.shape[0] == y_array.shape[0]
+    splits = get_splits(y_array, valid_size=valid_size, stratify=True, random_state=23, shuffle=shuffle, show_plot=False)
     # TODO investigate this step
     tfms  = [None, TSRegression()]
-    dls = get_ts_dls(tsai_X_train, tsai_y_train, splits=splits, tfms=tfms, batch_tfms=batch_tfms, bs=args['yaml_args']['hparams']['batch_size'])
+    dls = get_ts_dls(
+        X_array, 
+        y_array, 
+        splits=None if not valid_size else splits, 
+        tfms=tfms, 
+        batch_tfms=batch_tfms, 
+        bs=args['yaml_args']['hparams']['batch_size']
+    )
     return dls
 
 def build_loaders(args, train: bool=True, test: bool=False, shuffle_test: bool=False, test_idxs: list=None):
@@ -115,7 +123,7 @@ def build_loaders(args, train: bool=True, test: bool=False, shuffle_test: bool=F
         else:
             test_idxs = [int(idx) for idx in test_idxs]
         test_dataset = itemgetter(*test_idxs)(dataset)
-        if len(train_idxs) == 1:
+        if len(test_idxs) == 1:
             test_dataset = tuple([test_dataset])
         test_dataloader = loader_from_dataset(args=args, dataset=test_dataset, valid_size=0, shuffle=shuffle_test)
     else:
