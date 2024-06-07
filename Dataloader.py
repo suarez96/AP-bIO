@@ -101,6 +101,8 @@ def build_loaders(args, train: bool=True, test: bool=False, shuffle_test: bool=F
         
         # TODO add shuffle or tracking for subjects by ID
         train_dataset = itemgetter(*train_idxs)(dataset)
+        if len(train_idxs) == 1:
+            train_dataset = tuple([train_dataset])
         train_dataloader = loader_from_dataset(args=args, dataset=train_dataset)
     
     else:
@@ -113,6 +115,8 @@ def build_loaders(args, train: bool=True, test: bool=False, shuffle_test: bool=F
         else:
             test_idxs = [int(idx) for idx in test_idxs]
         test_dataset = itemgetter(*test_idxs)(dataset)
+        if len(train_idxs) == 1:
+            test_dataset = tuple([test_dataset])
         test_dataloader = loader_from_dataset(args=args, dataset=test_dataset, valid_size=0, shuffle=shuffle_test)
     else:
         test_dataloader = None
