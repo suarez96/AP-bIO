@@ -21,6 +21,7 @@ def run(args):
     args['yaml_args'] = train_utils.load_yaml(args['yaml_path'])
     train_loader, test_loader = Dataloader.build_loaders(args)
     model = Models.TSAITransformer(dataloader=train_loader, seq_len=args['yaml_args']['hparams']['seq_len'])
+    print(f"Log: {model.run_id}")
     logging.basicConfig(filename=f'logs/{model.run_id}_train.log', level=logging.INFO)
     model.train(args['yaml_args']['hparams']['iters'], args['yaml_args']['hparams']['lr'])
     # assert False

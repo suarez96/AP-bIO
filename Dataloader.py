@@ -83,7 +83,7 @@ def loader_from_dataset(
     dls = get_ts_dls(tsai_X_train, tsai_y_train, splits=splits, tfms=tfms, batch_tfms=batch_tfms, bs=args['yaml_args']['hparams']['batch_size'])
     return dls
 
-def build_loaders(args, test=False, shuffle_test=False):
+def build_loaders(args, train: bool=True, test: bool=False, shuffle_test: bool=False, test_idxs: list=None):
 
     """
     test: whether to build a test dataloader or return None
@@ -94,15 +94,24 @@ def build_loaders(args, test=False, shuffle_test=False):
     dataset = {
         int(i): MarshData(os.path.join(args['marsh_path'], i), verbose=False) for i in tqdm(os.listdir(args['marsh_path']), desc='traversing MARSH data...') if len(i) == 4
     }
+    assert train or test, "One of 'train' or 'test' must be set to true"
 
-    train_idxs = constants.argsort_subject_ids[:int(args['yaml_args']['data']['train_samples'])]
+    if train:
+        train_idxs = constants.argsort_subject_ids[:int(args['yaml_args']['data']['train_samples'])]
+        
+        # TODO add shuffle or tracking for subjects by ID
+        train_dataset = itemgetter(*train_idxs)(dataset)
+        train_dataloader = loader_from_dataset(args=args, dataset=train_dataset)
     
-    # TODO add shuffle or tracking for subjects by ID
-    train_dataset = itemgetter(*train_idxs)(dataset)
-    train_dataloader = loader_from_dataset(args=args, dataset=train_dataset)
-    
+    else:
+        train_dataloader = None
+
+    # load test indices either from the constants or from the cmd line args passed in eval 
     if test:
-        test_idxs = constants.argsort_subject_ids[int(args['yaml_args']['data']['train_samples']):]
+        if test_idxs is None: 
+            test_idxs = constants.argsort_subject_ids[int(args['yaml_args']['data']['train_samples']):]
+        else:
+            test_idxs = [int(idx) for idx in test_idxs]
         test_dataset = itemgetter(*test_idxs)(dataset)
         test_dataloader = loader_from_dataset(args=args, dataset=test_dataset, valid_size=0, shuffle=shuffle_test)
     else:
