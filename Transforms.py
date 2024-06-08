@@ -22,7 +22,8 @@ def build_transforms(pipeline=None, pipeline_args=None, search_space=None):
         'Crop': Crop,
         'MeanSubtraction': MeanSubtraction,
         'MinMaxScale': MinMaxScale,
-        'Detrend': Detrend
+        'Detrend': Detrend,
+        'ConvolveSmoothing': ConvolveSmoothing
     }
 
     created_pipeline = []
@@ -175,17 +176,22 @@ class ConvolveSmoothing(Transform):
 
 class MinMaxScale(Transform):
     """
-    Scales any signal from 0 to 1, not incredibly useful in practice, but very useful for visualizations.
+    If max/min undefined, scales any signal from 0 to 1. Otherwise, scales relatively between min and max
     """
 
-    def __init__(self, center=True):
+    def __init__(self, _min=None, _max=None, center=False):
         super().__init__()
         self.center = center
+        self.max = _max
+        self.min = _min
         
     def _transform(self, x, signal):
-        # center around 1 if center=False, otherwise center around 0.5 
-        return (x-x.min())/(x.max()-x.min()) - 0.5*int(self.center)
-
+        if self.min is None or self.max is None:  
+            min_max_scaled = (x-x.min())/(x.max()-x.min())
+            # center around 1 if center=False, otherwise center around 0.5 
+        else:
+            min_max_scaled = (x-self.min)/(self.max-self.min) 
+        return min_max_scaled - 0.5*int(self.center)
 
 class CWT(Transform):
     """

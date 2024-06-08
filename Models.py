@@ -68,6 +68,7 @@ class TSAITransformer(Model):
 
             post_processing = [
                 Transforms.ConvolveSmoothing(kernel_size=500),
+                Transforms.Detrend(),
                 Transforms.MinMaxScale(center=True), 
             ]
 
@@ -99,6 +100,7 @@ class TSAITransformer(Model):
             scores.append(score)
             # roll window to next sample
             start = end
+        logger.info(f"Avg WPC: {np.array(scores).mean()}")
         return scores
 
     def export(self):
