@@ -160,16 +160,31 @@ class Detrend(Transform):
     def _transform(self, x, signal):
         return self.fn(x)
 
+class ConvolveSmoothing(Transform):
+    """
+    In practice, removes DC. This method will make any signal zero-mean.
+    """
+
+    def __init__(self, kernel_size=500, mode='valid'):
+        super().__init__()
+        self.kernel_size = kernel_size
+        self.mode=mode
+        
+    def _transform(self, x, signal):
+        return np.convolve(x, np.ones((self.kernel_size,))/self.kernel_size, mode=self.mode)
+
 class MinMaxScale(Transform):
     """
     Scales any signal from 0 to 1, not incredibly useful in practice, but very useful for visualizations.
     """
 
-    def __init__(self):
+    def __init__(self, center=True):
         super().__init__()
+        self.center = center
         
     def _transform(self, x, signal):
-        return (x-x.min())/(x.max()-x.min())
+        # center around 1 if center=False, otherwise center around 0.5 
+        return (x-x.min())/(x.max()-x.min()) - 0.5*int(self.center)
 
 
 class CWT(Transform):

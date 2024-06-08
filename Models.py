@@ -5,6 +5,7 @@ import os
 import logging
 import Transforms
 from Signal import Signal
+import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +38,9 @@ class TSAITransformer(Model):
         """
         super().__init__(**kwargs)
         self.framework = 'tsai'
-        self.model = TST(dataloader.vars, dataloader.c, seq_len=seq_len)
         # the fastai object that manages the training loop
         if self.path is None:
+            self.model = TST(dataloader.vars, dataloader.c, seq_len=seq_len)
             self.learner = Learner(
                 dataloader,
                 self.model, 
@@ -54,18 +55,51 @@ class TSAITransformer(Model):
         self.learner.fit_one_cycle(iters, lr)
         logger.info("Training finished")
 
-    def eval(self, dataloader, **kwargs):
+    # TODO change to "infer" move eval logic to separate file
+    def eval(self, dataloader, num_windows_per_subject=[], test_idxs=[], **kwargs):
         logger.info("Evaluating model")
-        preds, gt = self.learner.get_preds(dl=dataloader)
-        cwt = Transforms.CWT(plot=True, lower_bound=kwargs.get("lower_bound", 0.1), higher_bound=kwargs.get("higher_bound", 0.55), resolution=kwargs.get("resolution", 60))
-        # remove crop on preds and gt
-        preds = Signal(_type='IP', data=np.array(preds), format='mat', filepath=None) # TODO: fix cwt transform to not depend on signal sample_rate 
-        preds_cwt = cwt(preds)
-        gt = Signal(_type='IP', data=np.array(gt), format='mat', filepath=None)
-        gt_cwt = cwt(gt)
-        print(preds_cwt.shape, gt_cwt.shape)
-        return
-        # return Transforms.WPC(preds_cwt, gt_cwt) TODO: Debug WPC
+        preds_full, gt_full = self.learner.get_preds(dl=dataloader)
+        start = 0
+        scores = []
+        for n_windows, test_idx in zip(num_windows_per_subject, test_idxs):
+            end = start + n_windows
+            # change from column to flat
+            preds, gt = preds_full.flatten()[start:end], gt_full.flatten()[start:end]
+
+            post_processing = [
+                Transforms.ConvolveSmoothing(kernel_size=500),
+                Transforms.MinMaxScale(center=True), 
+            ]
+
+            preds = Signal(
+                _type='IP', data=np.array(preds), format='mat', filepath=None
+            ).transform(transforms=post_processing)
+            gt = Signal(
+                _type='IP', data=np.array(gt), format='mat', filepath=None
+            ).transform(transforms=post_processing)
+
+            # center around 0 and plot
+            # TODO make plotting separate function
+            # plt.plot(preds.transformed_data, label='predictions')
+            # plt.plot(gt.transformed_data, label='ground truth')
+            # plt.title("After scaling")
+            # plt.legend()
+            # plt.show()
+            # TODO: fix cwt transform to not depend on signal sample_rate 
+            cwt = Transforms.CWT(
+                plot=False, 
+                lower_bound=kwargs.get("low", 0.1), 
+                higher_bound=kwargs.get("high", 0.55), 
+                resolution=kwargs.get("resolution", 60)
+            )
+            preds_cwt = cwt(preds)
+            gt_cwt = cwt(gt)
+            score = Transforms.WPC(preds_cwt, gt_cwt)[2].mean()
+            logger.info(f"Subject: {test_idx}, WPC: {score}")
+            scores.append(score)
+            # roll window to next sample
+            start = end
+        return scores
 
     def export(self):
         model_path = os.path.join(self.export_dir_root, self.framework, f"{self.run_id}.pkl")

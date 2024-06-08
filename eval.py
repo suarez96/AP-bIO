@@ -19,15 +19,27 @@ args = vars(parser.parse_args())
 
 def run(args):
 
-    args['yaml_args'] = train_utils.load_yaml(f"params/{args['name']}_params.yml")
-    # TODO figure out why this thing does not work
-    args['yaml_args']['hparams']['batch_size'] = 1
-    _, test_loader = Dataloader.build_loaders(args, train=False, test=True, test_idxs=args['indices'])
-    model = Models.TSAITransformer(dataloader=test_loader, seq_len=args['yaml_args']['hparams']['seq_len'], path=f"models/tsai/{args['name']}.pkl", cpu=False)
+    args['yaml_args'] = train_utils.load_yaml(
+        f"params/{args['name']}_params.yml", eval=True
+    )
+    _, _, test_loader, num_windows_per_subject = Dataloader.build_loaders(args, train=False, test=True, test_idxs=args['indices'])
+    print("num_windows_per_subject", num_windows_per_subject)
+    model = Models.TSAITransformer(
+        dataloader=test_loader, 
+        seq_len=args['yaml_args']['hparams']['seq_len'], 
+        path=f"models/tsai/{args['name']}.pkl", 
+        cpu=False
+    )
     print(f"Log: {model.run_id}")
     logging.basicConfig(filename=f'logs/{model.run_id}_eval.log', level=logging.INFO)
     # assert False
-    model.eval(test_loader, **args['yaml_args']['cwt_evaluation'])
+    scores = model.eval(
+        test_loader, 
+        **args['yaml_args']['cwt_evaluation'], 
+        num_windows_per_subject=num_windows_per_subject,
+        test_idxs=args['indices']
+    )
+    print(f"DONE! \nScores: {scores}")
 
 
 if __name__ == '__main__':
