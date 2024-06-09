@@ -7,6 +7,7 @@ import pywt
 import matplotlib.pyplot as plt
 import math
 import scipy
+
 from tqdm import tqdm
 
 def build_transforms(pipeline=None, pipeline_args=None, search_space=None):
@@ -149,9 +150,36 @@ class MeanSubtraction(Transform):
     def _transform(self, x, signal):
         return x-x.mean(axis=-1, keepdims=True)
 
-class Detrend(Transform):
+class LowPass(Transform):
     """
     In practice, removes DC. This method will make any signal zero-mean.
+    """
+
+    def __init__(self, cutoff, fs:int=250, order:int=5):
+        """
+        fs (int) sampling rate of the signal to be transformed
+        """
+        super().__init__()
+        self.cutoff = cutoff
+        self.fs = fs
+        self.order = order
+
+    # Function to design a Butterworth lowpass filter
+    def butter_lowpass(self):
+        nyq = 0.5 * self.fs
+        normal_cutoff = self.cutoff / nyq
+        b, a = scipy.signal.butter(self.order, normal_cutoff, btype='low', analog=False)
+        return b, a
+
+    # Function to apply the lowpass filter
+    def _transform(self, x, signal):
+        b, a = self.butter_lowpass()
+        y = scipy.signal.filtfilt(b, a, x)
+        return y
+
+class Detrend(Transform):
+    """
+    Removes the LINEAR trend in any signal. Not useful for removing polynomial trends of degree > 1
     """
 
     def __init__(self):

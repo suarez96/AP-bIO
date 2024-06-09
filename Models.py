@@ -20,7 +20,7 @@ class Model(ABC):
         self.framework = "no_framework"
         self.export_dir_root = export_dir_root
 
-    def eval():
+    def infer():
         raise NotImplementedError
 
     def train():
@@ -32,7 +32,7 @@ class Model(ABC):
 
 class TSAITransformer(Model):
 
-    def __init__(self, dataloader, seq_len=256, **kwargs):
+    def __init__(self, dataloader=None, seq_len=256, **kwargs):
         """
         export_dir_root (str): the parent directory where models will be saved
         """
@@ -56,53 +56,10 @@ class TSAITransformer(Model):
         logger.info("Training finished")
 
     # TODO change to "infer" move eval logic to separate file
-    def eval(self, dataloader, num_windows_per_subject=[], test_idxs=[], plot=False,**kwargs):
+    def infer(self, dataloader, num_windows_per_subject=[], test_idxs=[], plot=False,**kwargs):
         logger.info("Evaluating model")
         preds_full, gt_full = self.learner.get_preds(dl=dataloader)
-        start = 0
-        scores = []
-        for n_windows, test_idx in zip(num_windows_per_subject, test_idxs):
-            end = start + n_windows
-            # change from column to flat
-            preds, gt = preds_full.flatten()[start:end], gt_full.flatten()[start:end]
-
-            post_processing = [
-                Transforms.ConvolveSmoothing(kernel_size=500),
-                Transforms.Detrend(),
-                Transforms.MinMaxScale(center=True), 
-            ]
-
-            preds = Signal(
-                _type='IP', data=np.array(preds), format='mat', filepath=None
-            ).transform(transforms=post_processing)
-            gt = Signal(
-                _type='IP', data=np.array(gt), format='mat', filepath=None
-            ).transform(transforms=post_processing)
-
-            # center around 0 and plot
-            # TODO make plotting separate function
-            if plot:
-                plt.plot(preds.transformed_data, label='predictions')
-                plt.plot(gt.transformed_data, label='ground truth')
-                plt.title("After scaling")
-                plt.legend()
-                plt.show()
-            # TODO: fix cwt transform to not depend on signal sample_rate 
-            cwt = Transforms.CWT(
-                plot=plot, 
-                lower_bound=kwargs.get("low", 0.1), 
-                higher_bound=kwargs.get("high", 0.55), 
-                resolution=kwargs.get("resolution", 60)
-            )
-            preds_cwt = cwt(preds)
-            gt_cwt = cwt(gt)
-            score = Transforms.WPC(preds_cwt, gt_cwt)[2].mean()
-            logger.info(f"Subject: {test_idx}, WPC: {score}")
-            scores.append(score)
-            # roll window to next sample
-            start = end
-        logger.info(f"Avg WPC: {np.array(scores).mean()}")
-        return scores
+        return preds_full, gt_full
 
     def export(self):
         model_path = os.path.join(self.export_dir_root, self.framework, f"{self.run_id}.pkl")
