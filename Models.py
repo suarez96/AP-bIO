@@ -56,7 +56,7 @@ class TSAITransformer(Model):
         logger.info("Training finished")
 
     # TODO change to "infer" move eval logic to separate file
-    def eval(self, dataloader, num_windows_per_subject=[], test_idxs=[], **kwargs):
+    def eval(self, dataloader, num_windows_per_subject=[], test_idxs=[], plot=False,**kwargs):
         logger.info("Evaluating model")
         preds_full, gt_full = self.learner.get_preds(dl=dataloader)
         start = 0
@@ -81,14 +81,15 @@ class TSAITransformer(Model):
 
             # center around 0 and plot
             # TODO make plotting separate function
-            # plt.plot(preds.transformed_data, label='predictions')
-            # plt.plot(gt.transformed_data, label='ground truth')
-            # plt.title("After scaling")
-            # plt.legend()
-            # plt.show()
+            if plot:
+                plt.plot(preds.transformed_data, label='predictions')
+                plt.plot(gt.transformed_data, label='ground truth')
+                plt.title("After scaling")
+                plt.legend()
+                plt.show()
             # TODO: fix cwt transform to not depend on signal sample_rate 
             cwt = Transforms.CWT(
-                plot=False, 
+                plot=plot, 
                 lower_bound=kwargs.get("low", 0.1), 
                 higher_bound=kwargs.get("high", 0.55), 
                 resolution=kwargs.get("resolution", 60)

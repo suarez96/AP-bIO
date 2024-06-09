@@ -13,8 +13,9 @@ parser = argparse.ArgumentParser(
 )
 
 parser.add_argument('-n', '--name', type=str, help='id/name of the model to be tested')
-parser.add_argument('-i', '--indices', type=int, nargs="+", help='ID\'s of subjects to be tested')
+parser.add_argument('-i', '--indices', type=int, nargs="+", help='ID\'s of subjects to be tested', default=[1436, 5111, 256, 8722])
 parser.add_argument('-m', '--marsh_path', type=str, help='Filepath to MARSH root directory', default='../MARSH/')
+parser.add_argument('-v', '--visualize', action='store_true', help='Plot helper visuals')
 args = vars(parser.parse_args())
 
 def run(args):
@@ -37,7 +38,8 @@ def run(args):
         test_loader, 
         **args['yaml_args']['cwt_evaluation'], 
         num_windows_per_subject=num_windows_per_subject,
-        test_idxs=args['indices']
+        test_idxs=args['indices'],
+        plot=args['visualize']
     )
     print(f"DONE! \nScores: {scores}")
 

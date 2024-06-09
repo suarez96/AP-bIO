@@ -20,15 +20,18 @@ def run(args):
 
     args['yaml_args'] = train_utils.load_yaml(args['yaml_path'])
     train_loader, _, test_loader, _ = Dataloader.build_loaders(args)
-    model = Models.TSAITransformer(dataloader=train_loader, seq_len=args['yaml_args']['hparams']['seq_len'])
+    model = Models.TSAITransformer(
+        dataloader=train_loader, 
+        seq_len=args['yaml_args']['hparams']['seq_len']
+    )
+    # TODO MOVE TO EXPORT METHOD
+    shutil.copyfile(args['yaml_path'], f'params/{model.run_id}_params.yml')
     print(f"Log: {model.run_id}")
     logging.basicConfig(filename=f'logs/{model.run_id}_train.log', level=logging.INFO)
     model.train(args['yaml_args']['hparams']['iters'], args['yaml_args']['hparams']['lr'])
     # assert False
     # model.eval(test_loader, args['metrics'])
     model.export()
-    # TODO MOVE TO EXPORT METHOD
-    shutil.copyfile(args['yaml_path'], f'params/{model.run_id}_params.yml')
 
 
 
