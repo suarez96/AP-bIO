@@ -80,7 +80,7 @@ def loader_from_dataset(
     shuffle: shuffle data in the loader
     """
     X_ecg_rolling_stack_np, y_ip_stack_np, num_windows_per_subject = build_ECG_input_windows(args=args, dataset=dataset)
-    X_array = X_ecg_rolling_stack_np.reshape(-1, 1, args['yaml_args']['learner_params']['seq_len'])
+    X_array = X_ecg_rolling_stack_np.reshape(-1, 1, args['yaml_args']['model_params']['seq_len'])
     y_array = y_ip_stack_np.reshape(-1, 1)
     assert X_array.shape[0] == y_array.shape[0], "Inputs and Target shapes do not match!"
     

@@ -29,7 +29,7 @@ def run(args):
     if not args['eval_only']:
 
         args['yaml_args'] = train_utils.load_yaml(
-            args['yaml_path']
+            args['yaml_path'], eval=False
         )
         # TODO make train/test loaders separately since they each use different jump sizes. Could remove train/test boolean args
         # TODO add data leakage check
@@ -40,7 +40,7 @@ def run(args):
         )
         # blank model
         model = Models.TSAITransformer(
-            dataloader=train_loader, ,
+            dataloader=train_loader,
             model_params=args['yaml_args']['model_params']
         )
         # TODO MOVE TO EXPORT METHOD

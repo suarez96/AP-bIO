@@ -1,4 +1,4 @@
-desc: "A/B/C test comparing the use of LowPass/HighPass on training. ECG HP at 5. No LP on ECG"
+desc: "14 samples, no pass filters. Higher LR"
 
 data:
   train_samples: 14
@@ -6,15 +6,14 @@ data:
 learner_params:
   jump_size: 10 # num samples that sliding window jumps forward for every train signal
   batch_size: 128 # data loader batch size
-  lr: 0.0003
-  iters: 8
+  lr: 0.001
+  iters: 5
 
 model_params:
   seq_len: 256
-  n_heads: 16
-  d_k: 32
-  d_v: 32
-
+#   n_heads: 16
+#   d_k: 32
+#   d_v: 32
 
   # test:
   #   Crop_start: 420 # 7th minute in marsh data is unlabored breathing
@@ -35,12 +34,12 @@ global_ecg_pipeline:
     - _min: -0.0006556945871500413 # calculated with 14 train samples
     - _max: 0.002935897811694481
     - center: False
-  # MeanSubtraction:
+  MeanSubtraction:
   Detrend:
   # LowPass:
   #   - cutoff: 35
-  HighPass:
-    - cutoff: 5
+  # HighPass:
+  #   - cutoff: 5
 
 global_ip_pipeline:
   Crop:
@@ -50,7 +49,7 @@ global_ip_pipeline:
     - _min: -0.00016327855480638344
     - _max: 0.00032915616510091866
     - center: False
-  # MeanSubtraction:
+  MeanSubtraction:
   Detrend:
   # HighPass:
   #   - cutoff: 0.05

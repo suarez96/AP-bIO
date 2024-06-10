@@ -6,8 +6,16 @@ import logging
 import Transforms
 from Signal import Signal
 import matplotlib.pyplot as plt
+import torch
 
 logger = logging.getLogger(__name__)
+
+# callback for logging
+from fastai.callback.core import Callback
+class LogEpochMetrics(Callback):
+    def after_epoch(self):
+        logger.info(",".join(self.recorder.metric_names))
+        logger.info(self.recorder.log)
 
 class Model(ABC):
 
@@ -45,20 +53,24 @@ class TSAITransformer(Model):
                 dataloader,
                 self.model, 
                 loss_func=MSELossFlat(), 
-                metrics=rmse
+                metrics=rmse,
+                cbs=LogEpochMetrics()
             )
         else:
             self.learner = load_learner(self.path, cpu=kwargs.get("cpu", True))
+            self.learner.model.eval()
 
     def train(self, iters, lr):
         logger.info("Training finished")
         self.learner.fit_one_cycle(iters, lr)
+        self.learner.model.eval()
         logger.info("Training finished")
 
     # TODO change to "infer" move eval logic to separate file
     def infer(self, dataloader, num_windows_per_subject=[], test_idxs=[], plot=False,**kwargs):
         logger.info("Evaluating model")
-        preds_full, gt_full = self.learner.get_preds(dl=dataloader)
+        with torch.no_grad():
+            preds_full, gt_full = self.learner.get_preds(dl=dataloader)
         return preds_full, gt_full
 
     def export(self):
