@@ -17,7 +17,7 @@ parser.add_argument('-y', '--yaml_path', type=str, help='Filepath to YAML file w
 parser.add_argument('-e', '--eval-only', action='store_true', help='Only run evaluation, no training.')
 parser.add_argument('-n', '--name', type=str, help='id/name of the model to be tested')
 parser.add_argument('-f', '--framework', type=str, help='Model framework. Tsai, torch, etc.', default='tsai')
-parser.add_argument('-i', '--indices', type=int, nargs="+", help='ID\'s of subjects to be tested', default=[1436, 5111, 256, 8722])
+parser.add_argument('-i', '--indices', type=int, nargs="+", help='ID\'s of subjects to be tested', default=[256, 1436, 5111, 8722])
 parser.add_argument('-m', '--marsh_path', type=str, help='Filepath to MARSH root directory', default='../MARSH/')
 parser.add_argument('-v', '--visualize', action='store_true', help='Plot helper visuals')
 
