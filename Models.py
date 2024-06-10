@@ -85,3 +85,18 @@ class BidirectionalRNN(Model):
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+class ECGEnvelopeModel(Model):
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def train(self):
+        pass
+
+    def export(self):
+        pass
+
+    def infer(self, dataloader, num_windows_per_subject=[], test_idxs=[], plot=False,**kwargs):
+        logger.info("Evaluating model")
+        # return ECG envelope attribute if data is Signal, else calculate ECG ENV and return it for each sample
