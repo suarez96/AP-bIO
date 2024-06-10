@@ -40,15 +40,15 @@ def run(args):
         )
         # blank model
         model = Models.TSAITransformer(
-            dataloader=train_loader, 
-            seq_len=args['yaml_args']['hparams']['seq_len']
+            dataloader=train_loader, ,
+            model_params=args['yaml_args']['model_params']
         )
         # TODO MOVE TO EXPORT METHOD
         shutil.copyfile(args['yaml_path'], f'params/{model.run_id}_params.yml')
         print(f"Opening log for model id: {model.run_id}")
         logging.basicConfig(filename=f'logs/{model.run_id}_train.log', level=logging.INFO)
         # train logic inside
-        model.train(args['yaml_args']['hparams']['iters'], args['yaml_args']['hparams']['lr'])
+        model.train(args['yaml_args']['learner_params']['iters'], args['yaml_args']['learner_params']['lr'])
         # save model
         model.export()
         framework = model.framework
@@ -72,9 +72,9 @@ def run(args):
     )
     # load pretrained model
     eval_model = Models.TSAITransformer(
-        seq_len=args['yaml_args']['hparams']['seq_len'], 
         path=f"models/{framework}/{model_name}.pkl", 
-        cpu=False
+        cpu=False,
+        model_params=args['yaml_args']['model_params']
     )
     # create predictions
     preds_full, gt_full = eval_model.infer(dataloader=test_loader)

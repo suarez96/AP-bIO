@@ -32,7 +32,7 @@ class Model(ABC):
 
 class TSAITransformer(Model):
 
-    def __init__(self, dataloader=None, seq_len=256, **kwargs):
+    def __init__(self, dataloader=None, model_params={}, **kwargs):
         """
         export_dir_root (str): the parent directory where models will be saved
         """
@@ -40,7 +40,7 @@ class TSAITransformer(Model):
         self.framework = 'tsai'
         # the fastai object that manages the training loop
         if self.path is None:
-            self.model = TST(dataloader.vars, dataloader.c, seq_len=seq_len)
+            self.model = TST(dataloader.vars, dataloader.c, **model_params)
             self.learner = Learner(
                 dataloader,
                 self.model, 

@@ -54,10 +54,10 @@ def build_ECG_input_windows(
         # get rolling windows
         X_ecg_rolling = get_rolling_windows(
             input_ecg, 
-            window_size=args['yaml_args']['hparams']['seq_len'], 
-            jump=args['yaml_args']['hparams']['jump_size']
+            window_size=args['yaml_args']['model_params']['seq_len'], 
+            jump=args['yaml_args']['learner_params']['jump_size']
         )
-        y_ip = input_ip.data[args['yaml_args']['hparams']['seq_len']-1:][::args['yaml_args']['hparams']['jump_size']]
+        y_ip = input_ip.data[args['yaml_args']['model_params']['seq_len']-1:][::args['yaml_args']['learner_params']['jump_size']]
 
         X_ecg_rolling_train_stack.append(X_ecg_rolling)
         y_ip_train_stack.append(y_ip)
@@ -80,7 +80,7 @@ def loader_from_dataset(
     shuffle: shuffle data in the loader
     """
     X_ecg_rolling_stack_np, y_ip_stack_np, num_windows_per_subject = build_ECG_input_windows(args=args, dataset=dataset)
-    X_array = X_ecg_rolling_stack_np.reshape(-1, 1, args['yaml_args']['hparams']['seq_len'])
+    X_array = X_ecg_rolling_stack_np.reshape(-1, 1, args['yaml_args']['learner_params']['seq_len'])
     y_array = y_ip_stack_np.reshape(-1, 1)
     assert X_array.shape[0] == y_array.shape[0], "Inputs and Target shapes do not match!"
     
@@ -91,7 +91,7 @@ def loader_from_dataset(
         y_tensor = torch.tensor(y_array).float()  # Convert to float32 tensor
         dls = DataLoader(
             TensorDataset(X_tensor, y_tensor), 
-            batch_size=args['yaml_args']['hparams']['batch_size']
+            batch_size=args['yaml_args']['learner_params']['batch_size']
         )
     # use fastai type dataloader
     else:
@@ -108,7 +108,7 @@ def loader_from_dataset(
             splits=None if not valid_size else splits, 
             tfms=tfms, 
             batch_tfms=batch_tfms, 
-            bs=args['yaml_args']['hparams']['batch_size']
+            bs=args['yaml_args']['learner_params']['batch_size']
         )
     return dls, num_windows_per_subject
 
