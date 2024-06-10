@@ -126,7 +126,7 @@ def build_loaders(args, train: bool=True, test: bool=False, shuffle_test: bool=F
     assert train or test, "One of 'train' or 'test' must be set to true"
 
     if train:
-        train_idxs = constants.argsort_subject_ids[:int(args['yaml_args']['data']['train_samples'])]
+        train_idxs = constants.argsort_WPC_smoothed_per_index_train[:int(args['yaml_args']['data']['train_samples'])]
         
         # TODO add shuffle or tracking for subjects by ID
         train_dataset = itemgetter(*train_idxs)(dataset)
@@ -140,7 +140,9 @@ def build_loaders(args, train: bool=True, test: bool=False, shuffle_test: bool=F
     # load test indices either from the constants or from the cmd line args passed in eval 
     if test:
         if test_idxs is None: 
-            test_idxs = constants.argsort_subject_ids[int(args['yaml_args']['data']['train_samples']):]
+            test_idxs = constants.argsort_WPC_smoothed_per_index_train[
+                int(args['yaml_args']['data']['train_samples']):
+            ] + constants.argsort_WPC_smoothed_per_index_test
         else:
             test_idxs = [int(idx) for idx in test_idxs]
         test_dataset = itemgetter(*test_idxs)(dataset)
