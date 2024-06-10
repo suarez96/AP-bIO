@@ -24,7 +24,9 @@ def build_transforms(pipeline=None, pipeline_args=None, search_space=None):
         'MeanSubtraction': MeanSubtraction,
         'MinMaxScale': MinMaxScale,
         'Detrend': Detrend,
-        'ConvolveSmoothing': ConvolveSmoothing
+        'ConvolveSmoothing': ConvolveSmoothing,
+        'LowPass': LowPass,
+        'HighPass': HighPass,
     }
 
     created_pipeline = []
@@ -152,7 +154,7 @@ class MeanSubtraction(Transform):
 
 class LowPass(Transform):
     """
-    In practice, removes DC. This method will make any signal zero-mean.
+    Lowpass filter. Attenuates HIGH frequencies, only allowing the "lows to pass"
     """
 
     def __init__(self, cutoff, fs:int=250, order:int=5):
@@ -174,6 +176,34 @@ class LowPass(Transform):
     # Function to apply the lowpass filter
     def _transform(self, x, signal):
         b, a = self.butter_lowpass()
+        y = scipy.signal.filtfilt(b, a, x)
+        return y
+
+
+class HighPass(Transform):
+    """
+    Highpass filter. Attenuates LOW frequencies, only allowing the "highs to pass"
+    """
+
+    def __init__(self, cutoff, fs:int=250, order:int=5):
+        """
+        fs (int) sampling rate of the signal to be transformed
+        """
+        super().__init__()
+        self.cutoff = cutoff
+        self.fs = fs
+        self.order = order
+
+    # Function to design a Butterworth highpass filter
+    def butter_highpass(self):
+        nyq = 0.5 * self.fs
+        normal_cutoff = self.cutoff / nyq
+        b, a = scipy.signal.butter(self.order, normal_cutoff, btype='high', analog=False)
+        return b, a
+
+    # Function to apply the highpass filter
+    def _transform(self, x, signal):
+        b, a = self.butter_highpass()
         y = scipy.signal.filtfilt(b, a, x)
         return y
 

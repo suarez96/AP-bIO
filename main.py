@@ -36,9 +36,7 @@ def run(args):
         # build train dataloader
         train_loader, _, _, _ = Dataloader.build_loaders(
             args,
-            train=not args['eval_only'],
-            test=True,
-            test_idxs=args['indices']
+            train=not args['eval_only']
         )
         # blank model
         model = Models.TSAITransformer(
@@ -59,6 +57,7 @@ def run(args):
         model = None
         framework = args['framework']
         model_name = args['name']
+        logging.basicConfig(filename=f'logs/{model_name}_eval.log', level=logging.INFO)
     
     # test logic
     args['yaml_args'] = train_utils.load_yaml(
@@ -77,7 +76,6 @@ def run(args):
         path=f"models/{framework}/{model_name}.pkl", 
         cpu=False
     )
-    logging.basicConfig(filename=f'logs/{eval_model.run_id}_eval.log', level=logging.INFO)
     # create predictions
     preds_full, gt_full = eval_model.infer(dataloader=test_loader)
     # calculate metrics. ATM only WPC is calculated
