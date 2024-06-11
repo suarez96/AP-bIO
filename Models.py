@@ -66,7 +66,6 @@ class TSAITransformer(Model):
         self.learner.model.eval()
         logger.info("Training finished")
 
-    # TODO change to "infer" move eval logic to separate file
     def infer(self, dataloader, num_windows_per_subject=[], test_idxs=[], plot=False,**kwargs):
         logger.info("Evaluating model")
         with torch.no_grad():
