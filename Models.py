@@ -5,21 +5,30 @@ import os
 import logging
 import Transforms
 from Signal import Signal
+import matplotlib.pyplot as plt
+import torch
 
 logger = logging.getLogger(__name__)
+
+# callback for logging
+from fastai.callback.core import Callback
+class LogEpochMetrics(Callback):
+    def after_epoch(self):
+        logger.info(",".join(self.recorder.metric_names))
+        logger.info(self.recorder.log)
 
 class Model(ABC):
 
     def __init__(self, export_dir_root='models', path=None, **kwargs):
+        self.path = path
         if path is not None:
-            self.path = path
             self.run_id = path.split("/")[-1].replace(".pkl", "")
         else:
             self.run_id = hex(np.random.randint(0, 8**8))
         self.framework = "no_framework"
         self.export_dir_root = export_dir_root
 
-    def eval():
+    def infer():
         raise NotImplementedError
 
     def train():
@@ -31,36 +40,37 @@ class Model(ABC):
 
 class TSAITransformer(Model):
 
-    def __init__(self, dataloader, seq_len=256, **kwargs):
+    def __init__(self, dataloader=None, model_params={}, **kwargs):
         """
         export_dir_root (str): the parent directory where models will be saved
         """
         super().__init__(**kwargs)
         self.framework = 'tsai'
-        self.model = TST(dataloader.vars, dataloader.c, seq_len=seq_len)
         # the fastai object that manages the training loop
         if self.path is None:
-            self.learner = Learner(dataloader, self.model, loss_func=MSELossFlat(), metrics=rmse)
+            self.model = TST(dataloader.vars, dataloader.c, **model_params)
+            self.learner = Learner(
+                dataloader,
+                self.model, 
+                loss_func=MSELossFlat(), 
+                metrics=rmse,
+                cbs=LogEpochMetrics()
+            )
         else:
             self.learner = load_learner(self.path, cpu=kwargs.get("cpu", True))
+            self.learner.model.eval()
 
     def train(self, iters, lr):
         logger.info("Training finished")
         self.learner.fit_one_cycle(iters, lr)
+        self.learner.model.eval()
         logger.info("Training finished")
 
-    def eval(self, dataloader, **kwargs):
+    def infer(self, dataloader, num_windows_per_subject=[], test_idxs=[], plot=False,**kwargs):
         logger.info("Evaluating model")
-        preds, gt = self.learner.get_preds(dl=dataloader)
-        cwt = Transforms.CWT(plot=True, lower_bound=kwargs.get("lower_bound", 0.1), higher_bound=kwargs.get("higher_bound", 0.55), resolution=kwargs.get("resolution", 60))
-        # remove crop on preds and gt
-        preds = Signal(_type='IP', data=np.array(preds), format='mat', filepath=None) # TODO: fix cwt transform to not depend on signal sample_rate 
-        preds_cwt = cwt(preds)
-        gt = Signal(_type='IP', data=np.array(gt), format='mat', filepath=None)
-        gt_cwt = cwt(gt)
-        print(preds_cwt.shape, gt_cwt.shape)
-        return
-        # return Transforms.WPC(preds_cwt, gt_cwt) TODO: Debug WPC
+        with torch.no_grad():
+            preds_full, gt_full = self.learner.get_preds(dl=dataloader)
+        return preds_full, gt_full
 
     def export(self):
         model_path = os.path.join(self.export_dir_root, self.framework, f"{self.run_id}.pkl")
@@ -74,3 +84,18 @@ class BidirectionalRNN(Model):
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+class ECGEnvelopeModel(Model):
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def train(self):
+        pass
+
+    def export(self):
+        pass
+
+    def infer(self, dataloader, num_windows_per_subject=[], test_idxs=[], plot=False,**kwargs):
+        logger.info("Evaluating model")
+        # return ECG envelope attribute if data is Signal, else calculate ECG ENV and return it for each sample

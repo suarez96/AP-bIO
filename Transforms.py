@@ -7,6 +7,7 @@ import pywt
 import matplotlib.pyplot as plt
 import math
 import scipy
+
 from tqdm import tqdm
 
 def build_transforms(pipeline=None, pipeline_args=None, search_space=None):
@@ -22,7 +23,10 @@ def build_transforms(pipeline=None, pipeline_args=None, search_space=None):
         'Crop': Crop,
         'MeanSubtraction': MeanSubtraction,
         'MinMaxScale': MinMaxScale,
-        'Detrend': Detrend
+        'Detrend': Detrend,
+        'ConvolveSmoothing': ConvolveSmoothing,
+        'LowPass': LowPass,
+        'HighPass': HighPass,
     }
 
     created_pipeline = []
@@ -148,9 +152,64 @@ class MeanSubtraction(Transform):
     def _transform(self, x, signal):
         return x-x.mean(axis=-1, keepdims=True)
 
+class LowPass(Transform):
+    """
+    Lowpass filter. Attenuates HIGH frequencies, only allowing the "lows to pass"
+    """
+
+    def __init__(self, cutoff, fs:int=250, order:int=5):
+        """
+        fs (int) sampling rate of the signal to be transformed
+        """
+        super().__init__()
+        self.cutoff = cutoff
+        self.fs = fs
+        self.order = order
+
+    # Function to design a Butterworth lowpass filter
+    def butter_lowpass(self):
+        nyq = 0.5 * self.fs
+        normal_cutoff = self.cutoff / nyq
+        b, a = scipy.signal.butter(self.order, normal_cutoff, btype='low', analog=False)
+        return b, a
+
+    # Function to apply the lowpass filter
+    def _transform(self, x, signal):
+        b, a = self.butter_lowpass()
+        y = scipy.signal.filtfilt(b, a, x)
+        return y
+
+
+class HighPass(Transform):
+    """
+    Highpass filter. Attenuates LOW frequencies, only allowing the "highs to pass"
+    """
+
+    def __init__(self, cutoff, fs:int=250, order:int=5):
+        """
+        fs (int) sampling rate of the signal to be transformed
+        """
+        super().__init__()
+        self.cutoff = cutoff
+        self.fs = fs
+        self.order = order
+
+    # Function to design a Butterworth highpass filter
+    def butter_highpass(self):
+        nyq = 0.5 * self.fs
+        normal_cutoff = self.cutoff / nyq
+        b, a = scipy.signal.butter(self.order, normal_cutoff, btype='high', analog=False)
+        return b, a
+
+    # Function to apply the highpass filter
+    def _transform(self, x, signal):
+        b, a = self.butter_highpass()
+        y = scipy.signal.filtfilt(b, a, x)
+        return y
+
 class Detrend(Transform):
     """
-    In practice, removes DC. This method will make any signal zero-mean.
+    Removes the LINEAR trend in any signal. Not useful for removing polynomial trends of degree > 1
     """
 
     def __init__(self):
@@ -160,17 +219,37 @@ class Detrend(Transform):
     def _transform(self, x, signal):
         return self.fn(x)
 
-class MinMaxScale(Transform):
+class ConvolveSmoothing(Transform):
     """
-    Scales any signal from 0 to 1, not incredibly useful in practice, but very useful for visualizations.
+    In practice, removes DC. This method will make any signal zero-mean.
     """
 
-    def __init__(self):
+    def __init__(self, kernel_size=500, mode='valid'):
         super().__init__()
+        self.kernel_size = kernel_size
+        self.mode=mode
         
     def _transform(self, x, signal):
-        return (x-x.min())/(x.max()-x.min())
+        return np.convolve(x, np.ones((self.kernel_size,))/self.kernel_size, mode=self.mode)
 
+class MinMaxScale(Transform):
+    """
+    If max/min undefined, scales any signal from 0 to 1. Otherwise, scales relatively between min and max
+    """
+
+    def __init__(self, _min=None, _max=None, center=False):
+        super().__init__()
+        self.center = center
+        self.max = _max
+        self.min = _min
+        
+    def _transform(self, x, signal):
+        if self.min is None or self.max is None:  
+            min_max_scaled = (x-x.min())/(x.max()-x.min())
+            # center around 1 if center=False, otherwise center around 0.5 
+        else:
+            min_max_scaled = (x-self.min)/(self.max-self.min) 
+        return min_max_scaled - 0.5*int(self.center)
 
 class CWT(Transform):
     """
