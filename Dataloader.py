@@ -38,7 +38,7 @@ def build_ECG_input_windows(
     # take global ECG and break it into parts after applying transform
     for subject in tqdm(dataset, desc="building dataloader..."):
         
-        subject_id = int(subject.ECG().filepath.split('/')[-2])
+        subject_id = int(subject.ECG().filepath.replace('\\', '/').split('/')[-2])
         logger.info("Including subject:", subject_id)
 
         input_ecg_raw = subject.ECG().transform(transforms=global_ecg_pipeline)
