@@ -89,6 +89,7 @@ class ECGEnvelopeModel(Model):
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.framework='envelope'
 
     def train(self):
         pass

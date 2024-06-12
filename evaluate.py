@@ -16,9 +16,9 @@ def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=Fal
         preds_subject, gt_subject = preds.flatten()[start:end], gt.flatten()[start:end]
 
         post_processing = [
-            Transforms.ConvolveSmoothing(kernel_size=500),
+            # Transforms.ConvolveSmoothing(kernel_size=500),
             Transforms.Detrend(),
-            Transforms.MinMaxScale(center=True), 
+            # Transforms.MinMaxScale(center=True), 
         ]
 
         preds_subject = Signal(

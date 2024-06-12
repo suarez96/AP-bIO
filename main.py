@@ -1,5 +1,4 @@
 import argparse
-from train import run
 import train_utils
 import Dataloader
 import Models
@@ -48,7 +47,10 @@ def run(args):
         print(f"Opening log for model id: {model.run_id}")
         logging.basicConfig(filename=f'logs/{model.run_id}_train.log', level=logging.INFO)
         # train logic inside
-        model.train(args['yaml_args']['learner_params']['iters'], args['yaml_args']['learner_params']['lr'])
+        model.train(
+            args['yaml_args']['learner_params']['iters'], 
+            args['yaml_args']['learner_params']['lr']
+        )
         # save model
         model.export()
         framework = model.framework
