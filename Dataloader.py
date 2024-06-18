@@ -101,8 +101,8 @@ class LoaderBuilder:
 
                 fig, ax = plt.subplots(nrows=2, figsize=(9, 6))
                 fig.suptitle(f"Postprocessed {subject_id}")
-                # ax[0].plot(X_stack[-1][0])
-                # ax[0].plot(X_stack[-1][len(X_stack)//2])
+                ax[0].plot(X_stack[-1][0])
+                ax[0].plot(X_stack[-1][len(X_stack)//2])
                 ax[0].plot(X_stack[-1][-1])
                 ax[0].set_title(f'Postprocessed Input Samples')
                 ax[1].plot(y_ip)
