@@ -18,7 +18,7 @@ def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=Fal
         post_processing = [
             # Transforms.ConvolveSmoothing(kernel_size=500),
             Transforms.Detrend(),
-            # Transforms.MinMaxScale(center=True), 
+            Transforms.MinMaxScale(center=True),
         ]
 
         preds_subject = Signal(
@@ -46,7 +46,14 @@ def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=Fal
         )
         preds_cwt = cwt(preds_subject)
         gt_cwt = cwt(gt_subject)
-        score = Transforms.WPC(preds_cwt, gt_cwt)[2].mean()
+        score = Transforms.WPC(
+            preds_cwt, gt_cwt, 
+            freq=np.linspace(
+                kwargs.get("low", 0.1), 
+                kwargs.get("high", 0.55), 
+                kwargs.get("resolution", 60)
+            )
+        )[2].mean()
         logger.info(f"Subject: {test_idx}, WPC: {score}")
         scores.append(score)
         # roll window to next sample

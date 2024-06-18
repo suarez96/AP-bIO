@@ -98,6 +98,9 @@ class Crop(Transform):
         else:
             return x[self.start*sample_rate:self.start*sample_rate+self.length*sample_rate]
 
+    def __repr__(self):
+        return f"Crop(start={self.start}, end={self.end}, length={self.length}, default_sample_rate={self.default_sample_rate}"
+
 class SplineEnvelope(Transform):
     """
     Based on charlton work, the spline envelope based on the ECG signal is used as a reference for the breathing rate.
@@ -152,6 +155,9 @@ class MeanSubtraction(Transform):
     def _transform(self, x, signal):
         return x-x.mean(axis=-1, keepdims=True)
 
+    def __repr__(self):
+        return "MeanSubtraction()"
+
 class LowPass(Transform):
     """
     Lowpass filter. Attenuates HIGH frequencies, only allowing the "lows to pass"
@@ -178,6 +184,9 @@ class LowPass(Transform):
         b, a = self.butter_lowpass()
         y = scipy.signal.filtfilt(b, a, x)
         return y
+
+    def __repr__(self):
+        return f"LowPass(cutoff={self.cutoff}, fs={self.fs}, order={self.order})"
 
 
 class HighPass(Transform):
@@ -207,6 +216,9 @@ class HighPass(Transform):
         y = scipy.signal.filtfilt(b, a, x)
         return y
 
+    def __repr__(self):
+        return f"HighPass(cutoff={self.cutoff}, fs={self.fs}, order={self.order})"
+
 class Detrend(Transform):
     """
     Removes the LINEAR trend in any signal. Not useful for removing polynomial trends of degree > 1
@@ -218,6 +230,9 @@ class Detrend(Transform):
         
     def _transform(self, x, signal):
         return self.fn(x)
+
+    def __repr__(self):
+        return "Detrend()"
 
 class ConvolveSmoothing(Transform):
     """
@@ -250,6 +265,9 @@ class MinMaxScale(Transform):
         else:
             min_max_scaled = (x-self.min)/(self.max-self.min) 
         return min_max_scaled - 0.5*int(self.center)
+
+    def __repr__(self):
+        return f"MinMaxScale(center={self.center}, max={self.max}, min={self.min})"
 
 class CWT(Transform):
     """
