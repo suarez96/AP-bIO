@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # TODO make each metric a callable
-def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=False, **kwargs):
+def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=False, model_name='Trained Model', **kwargs):
     start = 0
     scores = []
     for n_windows, test_idx in zip(num_windows_per_subject, test_idxs):
@@ -16,7 +16,7 @@ def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=Fal
         preds_subject, gt_subject = preds.flatten()[start:end], gt.flatten()[start:end]
 
         post_processing = [
-            # Transforms.ConvolveSmoothing(kernel_size=500),
+            Transforms.ConvolveSmoothing(kernel_size=1000),
             Transforms.Detrend(),
             Transforms.MinMaxScale(center=True),
         ]
@@ -31,9 +31,10 @@ def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=Fal
         # center around 0 and plot
         # TODO make plotting separate function
         if plot:
+            plt.figure(f"{model_name}_{test_idx}")
             plt.plot(preds_subject.transformed_data, label='predictions')
             plt.plot(gt_subject.transformed_data, label='ground truth')
-            plt.title("After scaling")
+            plt.title("Postprocessed Predictions vs Ground Truth")
             plt.legend()
             plt.show()
 
