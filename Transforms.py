@@ -247,6 +247,9 @@ class ConvolveSmoothing(Transform):
     def _transform(self, x, signal):
         return np.convolve(x, np.ones((self.kernel_size,))/self.kernel_size, mode=self.mode)
 
+    def __repr__(self):
+        return f"ConvolveSmoothing(kernel_size={self.kernel_size}, mode={self.mode})"
+
 class MinMaxScale(Transform):
     """
     If max/min undefined, scales any signal from 0 to 1. Otherwise, scales relatively between min and max
@@ -317,6 +320,9 @@ class CWT(Transform):
             plt.title(f'CWT {signal.type}')
             plt.show()
         return coefficients
+
+    def __repr__(self):
+        return f"CWT(lower_bound={self.lower_bound}, higher_bound={self.higher_bound}, resolution={self.resolution}, wavelet={self.wavelet}, wavelet_A_param={self.wavelet_A_param}, wavelet_B_param={self.wavelet_B_param})"
 
 # static transforms
 def phase_coherence(angles):
