@@ -96,9 +96,6 @@ class LoaderBuilder:
                 num_windows_per_subject.append(len(X_ecg_rolling))
 
             if self.visualize:
-                print('SHAPES', X_stack[-1][-1].shape, y_ip.shape)
-                # # plt.plot(X_stack[-1], label='Postprocessed Input')
-
                 fig, ax = plt.subplots(nrows=2, figsize=(9, 6))
                 fig.suptitle(f"Postprocessed {subject_id}")
                 ax[0].plot(X_stack[-1][0])
@@ -108,7 +105,7 @@ class LoaderBuilder:
                 ax[1].plot(y_ip)
                 ax[1].set_title(f'Postprocessed Target')
                 fig.tight_layout()
-                fig.show()
+                plt.show()
 
 
         return np.vstack(X_stack), np.stack(y_stack).flatten(), num_windows_per_subject
