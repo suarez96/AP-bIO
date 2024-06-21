@@ -1,10 +1,10 @@
 import argparse
-from train import run
 import train_utils
 import Dataloader
 import Models
 import shutil # also move to export TODO
 from evaluate import evaluate_model
+from fastai.callback.schedule import ParamScheduler
 
 import logging
 logger = logging.getLogger(__name__)
@@ -16,8 +16,9 @@ parser = argparse.ArgumentParser(
 parser.add_argument('-y', '--yaml_path', type=str, help='Filepath to YAML file with training run params', default='params.yml')
 parser.add_argument('-e', '--eval-only', action='store_true', help='Only run evaluation, no training.')
 parser.add_argument('-n', '--name', type=str, help='id/name of the model to be tested')
-parser.add_argument('-f', '--framework', type=str, help='Model framework. Tsai, torch, etc.', default='tsai')
-parser.add_argument('-i', '--indices', type=int, nargs="+", help='ID\'s of subjects to be tested', default=[256, 1436, 5111, 8722])
+parser.add_argument('-f', '--framework', type=str, help='Model framework. Tsai, envelope, torch, etc.', default='tsai')
+parser.add_argument('--train-indices', type=int, nargs="+", help='ID\'s of subjects to be trained on', default=None)
+parser.add_argument('-i', '--test-indices', type=int, nargs="+", help='ID\'s of subjects to be tested', default=[256, 1436, 5111, 8722])
 parser.add_argument('-m', '--marsh_path', type=str, help='Filepath to MARSH root directory', default='../MARSH/')
 parser.add_argument('-v', '--visualize', action='store_true', help='Plot helper visuals')
 
@@ -25,30 +26,59 @@ args = vars(parser.parse_args())
 
 def run(args):
 
+    if args['eval_only']:
+        args['yaml_args'] = train_utils.load_yaml(
+            f"params/{args['name']}_params.yml"
+        )
+    else:
+        args['yaml_args'] = train_utils.load_yaml(
+            args['yaml_path']
+        )
+
+    loader_builder = Dataloader.LoaderBuilder(
+        marsh_path=args['marsh_path'],
+        train_samples=args['yaml_args']['data']['train_samples'],
+        seq_len=args['yaml_args']['model_params']['seq_len'],
+        global_ecg_pipeline=args['yaml_args']['global_ecg_pipeline'],
+        global_ip_pipeline=args['yaml_args']['global_ip_pipeline'],
+        framework=args['framework'],
+        jump_size=args['yaml_args']['learner_params']['jump_size'],
+        batch_size=args['yaml_args']['learner_params']['batch_size'],
+        visualize=args['visualize']
+    )
+
     # train logic
     if not args['eval_only']:
 
-        args['yaml_args'] = train_utils.load_yaml(
-            args['yaml_path'], eval=False
-        )
-        # TODO make train/test loaders separately since they each use different jump sizes. Could remove train/test boolean args
-        # TODO add data leakage check
+        # TODO make train/test loaders separately since they each use different jump sizes. Could remove train/test boolean args # TODO add data leakage check
         # build train dataloader
-        train_loader, _, _, _ = Dataloader.build_loaders(
-            args,
-            train=not args['eval_only']
+        train_loader, _ = loader_builder.build_loaders(
+            train=True,
+            idxs=args['train_indices']
         )
-        # blank model
-        model = Models.TSAITransformer(
-            dataloader=train_loader,
-            model_params=args['yaml_args']['model_params']
-        )
-        # TODO MOVE TO EXPORT METHOD
+
+        # untrained model
+        if args['framework'] == 'tsai':
+            model = Models.TSAITransformer(
+                dataloader=train_loader,
+                model_params=args['yaml_args']['model_params'],
+                framework=args['framework']
+            )
+        elif args['framework'] == 'envelope':
+            model = Models.ECGEnvelopeModel(framework=args['framework'])
+        else:
+            raise AssertionError("Training halted. Framework must be one of tsai/envelope.")
+
         shutil.copyfile(args['yaml_path'], f'params/{model.run_id}_params.yml')
         print(f"Opening log for model id: {model.run_id}")
         logging.basicConfig(filename=f'logs/{model.run_id}_train.log', level=logging.INFO)
+        if args['train_indices'] is not None:
+            logger.info(f"Train indices: {str(list(args['train_indices']))}")
         # train logic inside
-        model.train(args['yaml_args']['learner_params']['iters'], args['yaml_args']['learner_params']['lr'])
+        model.train(
+            args['yaml_args']['learner_params']['iters'], 
+            args['yaml_args']['learner_params']['lr']
+        )
         # save model
         model.export()
         framework = model.framework
@@ -60,22 +90,28 @@ def run(args):
         logging.basicConfig(filename=f'logs/{model_name}_eval.log', level=logging.INFO)
     
     # test logic
-    args['yaml_args'] = train_utils.load_yaml(
-        f"params/{model_name}_params.yml", eval=True
-    )
     # build test loader
-    _, _, test_loader, test_num_windows_per_subject = Dataloader.build_loaders(
-        args,
-        train=not args['eval_only'],
-        test=True,
-        test_idxs=args['indices']
+    test_loader, test_num_windows_per_subject = loader_builder.build_loaders(
+        train=False,
+        valid_size=0,
+        shuffle=False,
+        torch_loader=True,
+        idxs=args['test_indices']
     )
     # load pretrained model
-    eval_model = Models.TSAITransformer(
-        path=f"models/{framework}/{model_name}.pkl", 
-        cpu=False,
-        model_params=args['yaml_args']['model_params']
-    )
+
+    if args['framework'] == 'tsai':
+        eval_model = Models.TSAITransformer(
+            path=f"models/{framework}/{model_name}.pkl", 
+            cpu=False,
+            model_params=args['yaml_args']['model_params']
+        )
+    elif args['framework'] == 'envelope':
+        eval_model = Models.ECGEnvelopeModel(
+            framework=args['framework'],
+            path=f"models/{framework}/{model_name}.pkl", 
+            model_params=args['yaml_args']['model_params']
+        )
     # create predictions
     preds_full, gt_full = eval_model.infer(dataloader=test_loader)
     # calculate metrics. ATM only WPC is calculated
@@ -83,7 +119,7 @@ def run(args):
         preds=preds_full, 
         gt=gt_full,
         num_windows_per_subject=test_num_windows_per_subject,
-        test_idxs=args['indices'],
+        test_idxs=args['test_indices'],
         plot=args['visualize'],
         **args['yaml_args']['cwt_evaluation'], 
     )
