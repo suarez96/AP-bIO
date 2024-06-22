@@ -5,7 +5,7 @@ import Models
 import shutil # also move to export TODO
 from evaluate import evaluate_model
 from fastai.callback.schedule import ParamScheduler
-
+import time
 import logging
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,7 @@ args = vars(parser.parse_args())
 
 def run(args):
 
+    start_time = time.time()
     if args['eval_only']:
         args['yaml_args'] = train_utils.load_yaml(
             f"params/{args['name']}_params.yml"
@@ -126,6 +127,9 @@ def run(args):
     )
     print(f"DONE! \nScores: {scores}")
 
+    end_time = time.time()  
+    elapsed_time = end_time - start_time 
+    print(f"Elapsed time: {elapsed_time:.2f} seconds")
 
 if __name__ == '__main__':
     
