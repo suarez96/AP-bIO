@@ -7,7 +7,8 @@ import pywt
 import matplotlib.pyplot as plt
 import math
 import scipy
-
+import ptwt
+import torch
 from tqdm import tqdm
 
 def build_transforms(pipeline=None, pipeline_args=None, search_space=None):
@@ -306,11 +307,15 @@ class CWT(Transform):
         x -= x.mean()
         if self.scales is None:
             self.scales = (self.wavelet_B_param*signal.sample_rate)/self.freq_space
-            
+        
+        if isinstance(x, np.ndarray):
+            device = torch.device('cuda')
+            x = torch.tensor(x, dtype=torch.float32, device=device)
+
         coefficients = []
         for scale in tqdm(self.scales, desc="Calculating CWT"):
-            coef, _ = pywt.cwt(x, [scale], self.wavelet, sampling_period=1/signal.sample_rate)
-            coefficients.append(coef[0])
+            coef, _ = ptwt.cwt(x, [scale], self.wavelet, sampling_period=1/signal.sample_rate)
+            coefficients.append(coef[0].cpu().numpy())  
 
         coefficients = np.array(coefficients)
         if self.plot:
