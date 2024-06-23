@@ -17,6 +17,7 @@ def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=Fal
 
         post_processing = [
             Transforms.ConvolveSmoothing(kernel_size=1000),
+            Transforms.LowPass(cutoff=2),
             Transforms.Detrend(),
             Transforms.MinMaxScale(center=True),
         ]
@@ -32,7 +33,7 @@ def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=Fal
         # TODO make plotting separate function
         if plot:
             plt.figure(f"{model_name}_{test_idx}")
-            plt.plot(preds_subject.transformed_data, label='predictions')
+            plt.plot(preds_subject.transformed_data, label='predictions smoothed')
             plt.plot(gt_subject.transformed_data, label='ground truth')
             plt.title("Postprocessed Predictions vs Ground Truth")
             plt.legend()

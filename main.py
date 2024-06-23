@@ -121,6 +121,7 @@ def run(args):
         num_windows_per_subject=test_num_windows_per_subject,
         test_idxs=args['test_indices'],
         plot=args['visualize'],
+        model_name=model_name,
         **args['yaml_args']['cwt_evaluation'], 
     )
     print(f"DONE! \nScores: {scores}")
