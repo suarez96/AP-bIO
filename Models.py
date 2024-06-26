@@ -89,13 +89,19 @@ class ECGEnvelopeModel(Model):
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.framework='envelope'
 
-    def train(self):
+    def train(self, arg1, arg2):
+        """
+        train an empty model.
+        Still needs to be called to save transform/processing params to yaml before inference
+        """
         pass
 
     def export(self):
         pass
 
-    def infer(self, dataloader, num_windows_per_subject=[], test_idxs=[], plot=False,**kwargs):
+    def infer(self, dataloader):
         logger.info("Evaluating model")
+        return dataloader.dataset.tensors[0].reshape(-1, 1), dataloader.dataset.tensors[1].reshape(-1, 1)
         # return ECG envelope attribute if data is Signal, else calculate ECG ENV and return it for each sample
