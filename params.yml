@@ -1,26 +1,28 @@
-desc: "14 samples, no pass filters. Higher LR"
+desc: "JUNE 13TH test. A test: cropping after minute 1. No ECG Filtering."
 
 data:
-  train_samples: 14
+  train_samples: 20
 
 learner_params:
   jump_size: 10 # num samples that sliding window jumps forward for every train signal
   batch_size: 128 # data loader batch size
-  lr: 0.001
-  iters: 5
+  lr: 0.0003
+  iters: 10
 
 model_params:
   seq_len: 256
-#   n_heads: 16
-#   d_k: 32
-#   d_v: 32
+  d_model: 64
+  n_layers: 4
+  d_k: 8
+  d_v: 8
+  n_heads: 4
 
   # test:
   #   Crop_start: 420 # 7th minute in marsh data is unlabored breathing
   #   Crop_end: 480
 
 cwt_evaluation:
-  low: 0.1
+  low: 0.10
   high: 0.55
   resolution: 60
 
@@ -28,7 +30,7 @@ cwt_evaluation:
 # TODO explore highpassing the ecg to remove baseline wander
 global_ecg_pipeline:
   Crop:
-    - start: 0 # first 3 minutes in marsh data are unlabored breathing
+    - start: 80 # first 3 minutes in marsh data are unlabored breathing
     - end: 180
   MinMaxScale: # can be removed
     - _min: -0.0006556945871500413 # calculated with 14 train samples
@@ -36,14 +38,14 @@ global_ecg_pipeline:
     - center: False
   MeanSubtraction:
   Detrend:
+  # HighPass:
+  #   - cutoff: 8
   # LowPass:
   #   - cutoff: 35
-  # HighPass:
-  #   - cutoff: 5
 
 global_ip_pipeline:
   Crop:
-    - start: 0 # first 3 minutes in marsh data are unlabored breathing
+    - start: 80 # first 3 minutes in marsh data are unlabored breathing
     - end: 180
   MinMaxScale: # can be removed
     - _min: -0.00016327855480638344
@@ -52,7 +54,9 @@ global_ip_pipeline:
   MeanSubtraction:
   Detrend:
   # HighPass:
-  #   - cutoff: 0.05
+  #   - cutoff: 0.08
+  # LowPass:
+  #   - cutoff: 0.55
 
 # transforms for each individual time series used in training
 batch_ecg_pipeline:
