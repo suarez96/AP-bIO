@@ -377,6 +377,7 @@ class CWT(Transform):
         higher_bound: float=1, 
         resolution: int=10, 
         plot: bool=False, 
+        save_visuals: bool=False,
         wavelet: str='cmor5-0.8125',
         sample_rate=None,
         device='cuda',
@@ -388,11 +389,15 @@ class CWT(Transform):
         self.higher_bound = higher_bound
         self.resolution = resolution
         self.plot = plot
+        self.save_visuals = save_visuals
         self.wavelet = wavelet
         wavelet_params = self.wavelet.split('cmor')[1]
         self.wavelet_A_param = float(wavelet_params.split('-')[0])
         self.wavelet_B_param = float(wavelet_params.split('-')[1])
         self.freq_space = np.linspace(self.lower_bound, self.higher_bound, self.resolution)
+        self.model_name = model_name  
+        self.test_idx = test_idx
+        self.data_type = data_type
         if sample_rate is None:
             self.scales = None
         else:
@@ -411,10 +416,10 @@ class CWT(Transform):
         coefficients = []
         for scale in tqdm(self.scales, desc="Calculating CWT"):
             coef, _ = ptwt.cwt(x, [scale], self.wavelet, sampling_period=1/signal.sample_rate)
-            coefficients.append(coef[0].cpu().numpy())  
+            coefficients.append(coef[0].cpu().numpy())
 
         coefficients = np.array(coefficients)
-        if self.plot:
+        if self.plot or self.save_visuals:
             plt.figure(figsize=(9, 3))
             plt.imshow(
                 np.abs(coefficients)[::-1, :],  # flip axis
@@ -424,8 +429,12 @@ class CWT(Transform):
             )
             plt.xlabel("Time (s)")
             plt.ylabel("Freq (hz)")
-            plt.title(f'CWT {signal.type}')
-            plt.show()
+            plt.title(f'Model {self.model_name}: CWT for Index {self.test_idx} - {self.data_type}')
+            if self.save_visuals:
+                filename = f"visuals/{self.model_name}/{self.test_idx}_{self.data_type}_CWT.png"
+                plt.savefig(filename)
+            if self.plot:
+                plt.show()
         return coefficients
 
     def __repr__(self):

@@ -26,6 +26,8 @@ parser.add_argument('--train-indices', type=int, nargs="+", help='ID\'s of subje
 parser.add_argument('-i', '--test-indices', type=int, nargs="+", help='ID\'s of subjects to be tested', default=[256, 1436, 5111, 8722])
 parser.add_argument('-m', '--marsh_path', type=str, help='Filepath to MARSH root directory', default='../MARSH/')
 parser.add_argument('-v', '--visualize', action='store_true', help='Plot helper visuals')
+parser.add_argument('-s', '--save_visuals', action='store_true', help='Save eval visuals (Predictions and CWT)')
+
 
 args = vars(parser.parse_args())
 
@@ -133,6 +135,7 @@ def run(args):
         post_processing_pipeline=args['yaml_args']['post_processing_pipeline'],
         # model_name = model.run_id
         **args['yaml_args']['cwt_evaluation'], 
+        model_name = model.run_id
     )
     print(f"DONE! \nScores: {scores}")
 
