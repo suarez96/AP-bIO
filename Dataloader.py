@@ -198,6 +198,3 @@ class LoaderBuilder:
         assert len(n_windows_per_subject) == len(idxs)
 
         return dataloader, n_windows_per_subject
-
-
-
