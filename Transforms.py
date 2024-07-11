@@ -10,6 +10,7 @@ import scipy
 import ptwt
 import torch
 from tqdm import tqdm
+from pyts.decomposition import SingularSpectrumAnalysis
 
 def build_transforms(pipeline=None, pipeline_args=None, search_space=None):
     """
@@ -28,6 +29,7 @@ def build_transforms(pipeline=None, pipeline_args=None, search_space=None):
         'ConvolveSmoothing': ConvolveSmoothing,
         'LowPass': LowPass,
         'HighPass': HighPass,
+        'SSA': SSA
     }
 
     created_pipeline = []
@@ -251,6 +253,28 @@ class ConvolveSmoothing(Transform):
     def __repr__(self):
         return f"ConvolveSmoothing(kernel_size={self.kernel_size}, mode={self.mode})"
 
+class SSA(Transform):
+    """
+    Perform independent component analysis, using sklearn fastICA
+    """
+    def __init__(self, window_size=250, remove_components=False, num_components=1, **kwargs):
+        super().__init__()
+        self.remove_components = remove_components
+        self.num_components = num_components
+        self.window_size = window_size
+        self.transformer = SingularSpectrumAnalysis(window_size=self.window_size)
+        
+    def _transform(self, x, signal):
+        ssa_components = self.transformer.fit_transform(x.reshape(1, -1)).reshape(self.window_size, -1)
+        if self.remove_components:
+            return x - ssa_components[:self.num_components].sum(axis=0)
+        else:
+            return ssa_components
+
+    def __repr__(self):
+        return f"SSA(window_size={self.window_size}, num_components={self.num_components}, remove_components={self.remove_components})"
+
+
 class MinMaxScale(Transform):
     """
     If max/min undefined, scales any signal from 0 to 1. Otherwise, scales relatively between min and max
@@ -286,8 +310,11 @@ class CWT(Transform):
         plot: bool=False, 
         wavelet: str='cmor5-0.8125',
         sample_rate=None,
+        device='cuda',
         **kwargs
     ):
+        super().__init__()
+        self.device=device
         self.lower_bound = lower_bound
         self.higher_bound = higher_bound
         self.resolution = resolution
@@ -309,7 +336,7 @@ class CWT(Transform):
             self.scales = (self.wavelet_B_param*signal.sample_rate)/self.freq_space
         
         if isinstance(x, np.ndarray):
-            device = torch.device('cuda')
+            device = torch.device(self.device)
             x = torch.tensor(x, dtype=torch.float32, device=device)
 
         coefficients = []

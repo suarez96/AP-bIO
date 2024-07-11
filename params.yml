@@ -47,12 +47,16 @@ global_ip_pipeline:
   Crop:
     - start: 80 # first 3 minutes in marsh data are unlabored breathing
     - end: 180
+  SSA:
+    - window_size: 300
+    - remove_components: True
+    - n_components: 1
   MinMaxScale: # can be removed
     - _min: -0.00016327855480638344
     - _max: 0.00032915616510091866
     - center: False
   MeanSubtraction:
-  Detrend:
+  # Detrend:
   # HighPass:
   #   - cutoff: 0.08
   # LowPass:
