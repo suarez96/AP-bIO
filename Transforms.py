@@ -288,11 +288,14 @@ class CWT(Transform):
         save_visuals: bool=False,
         wavelet: str='cmor5-0.8125',
         sample_rate=None,
+        device='cuda',
         model_name='Trained Model', 
         test_idx=None,
         data_type='',
         **kwargs
     ):
+        super().__init__()
+        self.device=device
         self.lower_bound = lower_bound
         self.higher_bound = higher_bound
         self.resolution = resolution
@@ -318,7 +321,7 @@ class CWT(Transform):
             self.scales = (self.wavelet_B_param*signal.sample_rate)/self.freq_space
         
         if isinstance(x, np.ndarray):
-            device = torch.device('cuda')
+            device = torch.device(self.device)
             x = torch.tensor(x, dtype=torch.float32, device=device)
 
         coefficients = []
