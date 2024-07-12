@@ -3,21 +3,8 @@ import Transforms
 from Signal import Signal
 import matplotlib.pyplot as plt
 import os
-from functools import partial
 import logging
 logger = logging.getLogger(__name__)
-
-def create_cwt_transform(model_name, test_idx, data_type, plot=False, save_visuals=False, **kwargs):
-    return Transforms.CWT(
-        plot=plot,
-        save_visuals=save_visuals,
-        lower_bound=kwargs.get("low", 0.1),
-        higher_bound=kwargs.get("high", 0.55),
-        resolution=kwargs.get("resolution", 60),
-        model_name=model_name,
-        test_idx=test_idx,
-        data_type=data_type
-    )
 
 # TODO make each metric a callable
 def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=False, save_visuals=False, model_name=None, **kwargs):
@@ -59,17 +46,10 @@ def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=Fal
                 plt.show()
 
         # TODO: fix cwt transform to not depend on signal sample_rate 
-        create_cwt_transform_partial = partial(
-            create_cwt_transform,
-            model_name=model_name,
-            test_idx=test_idx,
-            plot=plot,
-            save_visuals=save_visuals,
-            **kwargs
+        preds_cwt, gt_cwt = Transforms.apply_cwt_transform(
+            model_name, test_idx, preds_subject, gt_subject, plot=plot, save_visuals=save_visuals, **kwargs
         )
 
-        preds_cwt = create_cwt_transform_partial(data_type='Preds')(preds_subject)
-        gt_cwt = create_cwt_transform_partial(data_type='GT')(gt_subject)
 
         score = Transforms.WPC(
             preds_cwt, gt_cwt, 

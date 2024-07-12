@@ -10,6 +10,7 @@ import scipy
 import ptwt
 import torch
 from tqdm import tqdm
+from functools import partial
 
 def build_transforms(pipeline=None, pipeline_args=None, search_space=None):
     """
@@ -336,7 +337,7 @@ class CWT(Transform):
             )
             plt.xlabel("Time (s)")
             plt.ylabel("Freq (hz)")
-            plt.title(f'Model {self.model_name}: CWT for Index {self.test_idx} - {self.data_type}')
+            plt.title(f'Model {self.model_name}: CWT for Subject {self.test_idx} - {self.data_type}')
             if self.save_visuals:
                 filename = f"visuals/{self.model_name}/{self.test_idx}_{self.data_type}_CWT.png"
                 plt.savefig(filename)
@@ -421,3 +422,30 @@ def upsample_and_blur(t=None, a=None, x_rep=3, y_rep=3, kernel_size=5):
         )
         
     return upsample_t, upsample_a
+
+def create_cwt_transform(model_name, test_idx, data_type, plot=False, save_visuals=False, **kwargs):
+    return CWT(
+        plot=plot,
+        save_visuals=save_visuals,
+        lower_bound=kwargs.get("low", 0.1),
+        higher_bound=kwargs.get("high", 0.55),
+        resolution=kwargs.get("resolution", 60),
+        model_name=model_name,
+        test_idx=test_idx,
+        data_type=data_type
+    )
+
+def apply_cwt_transform(model_name, test_idx, preds_subject, gt_subject, plot=False, save_visuals=False, **kwargs):
+    create_cwt_transform_partial = partial(
+        create_cwt_transform,
+        model_name=model_name,
+        test_idx=test_idx,
+        plot=plot,
+        save_visuals=save_visuals,
+        **kwargs
+    )
+
+    preds_cwt = create_cwt_transform_partial(data_type='Preds')(preds_subject)
+    gt_cwt = create_cwt_transform_partial(data_type='GT')(gt_subject)
+    
+    return preds_cwt, gt_cwt
