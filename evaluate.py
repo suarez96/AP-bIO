@@ -2,14 +2,18 @@ import numpy as np
 import Transforms
 from Signal import Signal
 import matplotlib.pyplot as plt
-
+import os
 import logging
 logger = logging.getLogger(__name__)
 
 # TODO make each metric a callable
-def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=False, model_name='Trained Model', **kwargs):
+def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=False, save_visuals=False, model_name=None, **kwargs):
     start = 0
     scores = []
+    if save_visuals:
+        if not os.path.exists(f"visuals/{model_name}"):
+            os.makedirs(f"visuals/{model_name}")
+
     for n_windows, test_idx in zip(num_windows_per_subject, test_idxs):
         end = start + n_windows
         # change from column to flat
@@ -30,23 +34,23 @@ def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=Fal
 
         # center around 0 and plot
         # TODO make plotting separate function
-        if plot:
+        if plot or save_visuals:
             plt.figure(f"{model_name}_{test_idx}")
-            plt.plot(preds_subject.transformed_data, label='predictions')
-            plt.plot(gt_subject.transformed_data, label='ground truth')
+            plt.plot(preds_subject.transformed_data, label='Preds')
+            plt.plot(gt_subject.transformed_data, label='GT')
             plt.title("Postprocessed Predictions vs Ground Truth")
             plt.legend()
-            plt.show()
+            if save_visuals:
+                plt.savefig(f"visuals/{model_name}/{test_idx}.png")
+            if plot:
+                plt.show()
 
         # TODO: fix cwt transform to not depend on signal sample_rate 
-        cwt = Transforms.CWT(
-            plot=plot, 
-            lower_bound=kwargs.get("low", 0.1), 
-            higher_bound=kwargs.get("high", 0.55), 
-            resolution=kwargs.get("resolution", 60)
+        preds_cwt, gt_cwt = Transforms.apply_cwt_transform(
+            model_name, test_idx, preds_subject, gt_subject, plot=plot, save_visuals=save_visuals, **kwargs
         )
-        preds_cwt = cwt(preds_subject)
-        gt_cwt = cwt(gt_subject)
+
+
         score = Transforms.WPC(
             preds_cwt, gt_cwt, 
             freq=np.linspace(
