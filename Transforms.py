@@ -23,6 +23,7 @@ def build_transforms(pipeline=None, pipeline_args=None, search_space=None):
     # used for matching string arguments with the python
     translation_map = {
         'Crop': Crop,
+        'Quantize': Quantize,
         'MeanSubtraction': MeanSubtraction,
         'MinMaxScale': MinMaxScale,
         'Detrend': Detrend,
@@ -102,7 +103,29 @@ class Crop(Transform):
             return x[self.start*sample_rate:self.start*sample_rate+self.length*sample_rate]
 
     def __repr__(self):
-        return f"Crop(start={self.start}, end={self.end}, length={self.length}, default_sample_rate={self.default_sample_rate}"
+        return f"Crop(start={self.start}, end={self.end}, length={self.length}, default_sample_rate={self.default_sample_rate})"
+
+class Quantize(Transform):
+
+    np_precisions = {
+        16: np.float16,
+        32: np.float32,
+        64: np.float64,
+    }
+    
+    def __init__(self, precision=32):
+        """
+        precision: desired floating point precision of output
+        """
+        super().__init__()
+        self.precision = int(precision)
+        assert self.precision in Quantize.np_precisions, f"Unsupported precision {self.precision}"
+
+    def _transform(self, x, signal):
+        return x.astype(Quantize.np_precisions[self.precision])
+
+    def __repr__(self):
+        return f"Quantize(precision={self.precision})"
 
 class SplineEnvelope(Transform):
     """
@@ -257,22 +280,23 @@ class SSA(Transform):
     """
     Perform independent component analysis, using sklearn fastICA
     """
-    def __init__(self, window_size=250, remove_components=False, num_components=1, **kwargs):
+    def __init__(self, window_size=250, subtract_components=False, num_components=1, **kwargs):
         super().__init__()
-        self.remove_components = remove_components
+        self.subtract_components = subtract_components
         self.num_components = num_components
         self.window_size = window_size
-        self.transformer = SingularSpectrumAnalysis(window_size=self.window_size)
         
     def _transform(self, x, signal):
-        ssa_components = self.transformer.fit_transform(x.reshape(1, -1)).reshape(self.window_size, -1)
-        if self.remove_components:
+        transformer = SingularSpectrumAnalysis(window_size=self.window_size)
+        ssa_components = transformer.fit_transform(x.reshape(1, -1)).reshape(self.window_size, -1)
+        del transformer
+        if self.subtract_components:
             return x - ssa_components[:self.num_components].sum(axis=0)
         else:
             return ssa_components
 
     def __repr__(self):
-        return f"SSA(window_size={self.window_size}, num_components={self.num_components}, remove_components={self.remove_components})"
+        return f"SSA(window_size={self.window_size}, num_components={self.num_components}, subtract_components={self.subtract_components})"
 
 
 class MinMaxScale(Transform):
