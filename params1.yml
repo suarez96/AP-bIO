@@ -1,4 +1,4 @@
-desc: "NIAGARA FULL TEST. A"
+desc: "NIAGARA FULL TEST. B - SSA Filtering"
 
 data:
   train_samples: 25
@@ -34,10 +34,10 @@ global_ecg_pipeline:
   Crop:
     - start: 10 # first 3 minutes in marsh data are unlabored breathing
     - end: 720
-  # SSA:
-  #   - window_size: 200
-  #   - remove_components: True
-  #   - n_components: 1
+  SSA:
+    - window_size: 200
+    - remove_components: True
+    - n_components: 1
   MinMaxScale: # can be removed
     - _min: -0.0006556945871500413 # calculated with 14 train samples
     - _max: 0.002935897811694481

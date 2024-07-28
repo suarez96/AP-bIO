@@ -1,4 +1,4 @@
-desc: "NIAGARA FULL TEST. A"
+desc: "NIAGARA FULL TEST. C - ECG Filtering 8-35hz"
 
 data:
   train_samples: 25
@@ -44,10 +44,10 @@ global_ecg_pipeline:
     - center: False
   MeanSubtraction:
   Detrend:
-  # HighPass:
-  #   - cutoff: 8
-  # LowPass:
-  #   - cutoff: 35
+  HighPass:
+    - cutoff: 8
+  LowPass:
+    - cutoff: 35
 
 global_ip_pipeline:
   Crop:
