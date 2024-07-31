@@ -1,13 +1,13 @@
-desc: "NIAGARA FULL TEST. A"
+desc: "Debug SSA and ECG Filtering 8-35hz Test for Functions, 5 sampels, 3 iters, 0.0003 lr"
 
 data:
-  train_samples: 25
+  train_samples: 5
 
 learner_params:
   jump_size: 10 # num samples that sliding window jumps forward for every train signal
   batch_size: 128 # data loader batch size
   lr: 0.0003
-  iters: 10
+  iters: 3
 
 model_params:
   seq_len: 256
