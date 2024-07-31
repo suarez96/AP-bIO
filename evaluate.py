@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # TODO make each metric a callable
-def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=False, **kwargs):
+def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=False, save_visuals=False, model_name=None, post_processing_pipeline=[], **kwargs):
     start = 0
     scores = []
     for n_windows, test_idx in zip(num_windows_per_subject, test_idxs):
@@ -15,11 +15,9 @@ def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=Fal
         # change from column to flat
         preds_subject, gt_subject = preds.flatten()[start:end], gt.flatten()[start:end]
 
-        post_processing = [
-            Transforms.ConvolveSmoothing(kernel_size=500),
-            Transforms.Detrend(),
-            Transforms.MinMaxScale(center=True), 
-        ]
+        post_processing = Transforms.build_transforms(
+            post_processing_pipeline
+        )
 
         preds_subject = Signal(
             _type='IP', data=np.array(preds_subject), format='mat', filepath=None

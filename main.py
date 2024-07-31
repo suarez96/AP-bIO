@@ -86,6 +86,8 @@ def run(args):
         test_idxs=args['indices'],
         plot=args['visualize'],
         **args['yaml_args']['cwt_evaluation'], 
+        post_processing_pipeline=args['yaml_args']['post_processing_pipeline'],
+        model_name = model.run_id
     )
     print(f"DONE! \nScores: {scores}")
 

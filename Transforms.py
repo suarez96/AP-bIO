@@ -285,8 +285,18 @@ class CWT(Transform):
         x -= x.mean()
         if self.scales is None:
             self.scales = (self.wavelet_B_param*signal.sample_rate)/self.freq_space
-        coefficients, frequencies = pywt.cwt(x, self.scales, self.wavelet, sampling_period=1/signal.sample_rate)
-        if self.plot:
+        
+        if isinstance(x, np.ndarray):
+            device = torch.device(self.device)
+            x = torch.tensor(x, dtype=torch.float32, device=device)
+
+        coefficients = []
+        for scale in self.scales:
+            coef, _ = ptwt.cwt(x, [scale], self.wavelet, sampling_period=1/signal.sample_rate)
+            coefficients.append(coef[0].cpu().numpy())
+
+        coefficients = np.array(coefficients)
+        if self.plot or self.save_visuals:
             plt.figure(figsize=(9, 3))
             plt.imshow(
                 np.abs(coefficients)[::-1, :],  # flip axis
@@ -326,7 +336,7 @@ def WPC(cwt1, cwt2, fs=250, freq=np.linspace(0.1, 0.55, 60), num_cyc=5):
     PC_norm = np.zeros([num_freqs, M])
     t = np.linspace(0, M/freq[-1], PC_norm.shape[1])
     
-    for f_idx in tqdm(range(freq.shape[0]), desc="Calculating WPC"):
+    for f_idx in range(freq.shape[0]):
         # split sample into windows of num_cyc cycles
         win_len_sec = window_size[f_idx] # in seconds
         win_len = math.floor(win_len_sec * fs) # in samples
