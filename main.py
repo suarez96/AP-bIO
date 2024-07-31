@@ -126,6 +126,7 @@ def run(args):
         plot=args['visualize'],
         save_visuals=args['save_visuals'],
         **args['yaml_args']['cwt_evaluation'], 
+        post_processing_pipeline=args['yaml_args']['post_processing_pipeline'],
         model_name = model.run_id
     )
     print(f"DONE! \nScores: {scores}")

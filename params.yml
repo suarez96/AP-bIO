@@ -71,3 +71,12 @@ batch_ecg_pipeline:
 batch_ip_pipeline:
 
 dataloader_pipeline:
+
+post_processing_pipeline:
+  ConvolveSmoothing: 
+    - kernel_size: 1000
+  LowPass:
+    - cutoff: 2
+  Detrend:
+  MinMaxScale:
+    - center: True
