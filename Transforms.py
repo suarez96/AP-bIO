@@ -127,6 +127,7 @@ class Quantize(Transform):
     def __repr__(self):
         return f"Quantize(precision={self.precision})"
 
+# TODO fix plotting for this function
 class SplineEnvelope(Transform):
     """
     Based on charlton work, the spline envelope based on the ECG signal is used as a reference for the breathing rate.
@@ -275,6 +276,18 @@ class ConvolveSmoothing(Transform):
 
     def __repr__(self):
         return f"ConvolveSmoothing(kernel_size={self.kernel_size}, mode={self.mode})"
+
+class CoarseDownsample(Transform):
+
+    def __init__(self, factor=10):
+        super().__init__()
+        self.factor = factor
+        
+    def _transform(self, x, signal):
+        return x[::self.factor]
+
+    def __repr__(self):
+        return f"CoarseDownsample(factor={self.factor})"
 
 class SSA(Transform):
     """
