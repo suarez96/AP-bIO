@@ -42,7 +42,7 @@ def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=Fal
                 plt.savefig(f"visuals/{model_name}/{test_idx}.png")
             if plot:
                 plt.show()
-
+            plt.clf()
         # TODO: fix cwt transform to not depend on signal sample_rate 
         preds_cwt, gt_cwt = Transforms.apply_cwt_transform(
             model_name, test_idx, preds_subject, gt_subject, plot=plot, save_visuals=save_visuals, **kwargs
@@ -60,6 +60,20 @@ def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=Fal
         logger.info(f"Subject: {test_idx}, WPC: {score}")
         scores.append(score)
         # roll window to next sample
+
+        preds_slice = preds_subject.transformed_data[15000:22500]
+        gt_slice = gt_subject.transformed_data[15000:22500]
+
+        plt.figure(f"{model_name}_{test_idx}_60_to_90s")
+        plt.plot(preds_slice, label='Preds')
+        plt.plot(gt_slice, label='GT')
+        plt.title("Postprocessed Predictions vs Ground Truth (60s to 90s)")
+        plt.legend()
+
+        if save_visuals:
+            plt.savefig(f"visuals/{model_name}/{test_idx}_60_to_90s.png")
+        if plot:
+            plt.show()
         start = end
 
     logger.info(f"Avg WPC: {np.array(scores).mean()}")

@@ -30,7 +30,8 @@ def build_transforms(pipeline=None, pipeline_args=None, search_space=None):
         'ConvolveSmoothing': ConvolveSmoothing,
         'LowPass': LowPass,
         'HighPass': HighPass,
-        'SSA': SSA
+        'SSA': SSA,
+        'CoarseDownsample': CoarseDownsample
     }
 
     created_pipeline = []
@@ -78,17 +79,17 @@ class Transform(ABC):
 
 class Crop(Transform):
     
-    def __init__(self, start, end=None, length=None, default_sample_rate=250):
+    def __init__(self, starts, ends=None, lengths=None, default_sample_rate=250):
         """
         start: start of crop in seconds
         end: end of crop in seconds
         length: length of crop in seconds
         """
-        assert end or length, "One of 'end' or 'length' must be defined"
+        assert ends or lengths, "One of 'end' or 'length' must be defined"
         super().__init__()
-        self.start = start
-        self.end = end
-        self.length = length
+        self.starts = starts
+        self.ends = ends
+        self.lengths = lengths
         self.default_sample_rate = default_sample_rate
 
     def _transform(self, x, signal):
@@ -97,13 +98,20 @@ class Crop(Transform):
         except AttributeError:
             sample_rate = self.default_sample_rate
         
-        if self.end is not None:
-            return x[self.start*sample_rate:self.end*sample_rate]
-        else:
-            return x[self.start*sample_rate:self.start*sample_rate+self.length*sample_rate]
+        # if self.end is not None:
+        #     return x[self.start*sample_rate:self.end*sample_rate]
+        # else:
+        #     return x[self.start*sample_rate:self.start*sample_rate+self.length*sample_rate]
+
+        cropped_sections = []
+        for start, end in zip(self.starts, self.ends):
+            cropped_sections.append(x[start*sample_rate:end*sample_rate])
+        
+        return np.concatenate(cropped_sections)
+
 
     def __repr__(self):
-        return f"Crop(start={self.start}, end={self.end}, length={self.length}, default_sample_rate={self.default_sample_rate}"
+        return f"Crop(starts={self.starts}, ends={self.ends}, lengths={self.lengths}, default_sample_rate={self.default_sample_rate}"
 
 class SplineEnvelope(Transform):
     """
@@ -254,6 +262,18 @@ class ConvolveSmoothing(Transform):
     def __repr__(self):
         return f"ConvolveSmoothing(kernel_size={self.kernel_size}, mode={self.mode})"
 
+class CoarseDownsample(Transform):
+
+    def __init__(self, factor=10):
+        super().__init__()
+        self.factor = factor
+
+    def _transform(self, x, signal):
+        return x[::self.factor]
+
+    def __repr__(self):
+        return f"CoarseDownsample(factor={self.factor})"
+    
 class SSA(Transform):
     """
     Perform independent component analysis, using sklearn fastICA

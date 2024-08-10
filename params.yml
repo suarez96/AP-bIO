@@ -1,4 +1,4 @@
-desc: "NIAGARA FULL TEST. A"
+desc: "large test on supercomputer with 25/10 and multiple crops"
 
 data:
   train_samples: 25
@@ -32,18 +32,21 @@ global_ecg_pipeline:
   # Quantize:
   #   - precision: 16
   Crop:
-    - start: 10 # first 3 minutes in marsh data are unlabored breathing
-    - end: 720
-  # SSA:
-  #   - window_size: 200
-  #   - remove_components: True
-  #   - n_components: 1
+    - starts: [60, 350, 500, 820]
+    - ends: [170, 400, 580, 890]
+  SSA:
+    - window_size: 150
+    - remove_components: True
+    - n_components: 1
   MinMaxScale: # can be removed
     - _min: -0.0006556945871500413 # calculated with 14 train samples
     - _max: 0.002935897811694481
     - center: False
   MeanSubtraction:
   Detrend:
+  # ConvolveSmoothing:
+  #   - kernel_size: 100
+  #   - mode: 'same' 
   # HighPass:
   #   - cutoff: 8
   # LowPass:
@@ -51,14 +54,14 @@ global_ecg_pipeline:
 
 global_ip_pipeline:
   Crop:
-    - start: 10 # first 3 minutes in marsh data are unlabored breathing
-    - end: 720
+    - starts: [60, 350, 500, 820]
+    - ends: [170, 400, 580, 890]
   MinMaxScale: # can be removed
     - _min: -0.00016327855480638344
     - _max: 0.00032915616510091866
     - center: False
   MeanSubtraction:
-  Detrend:
+  # Detrend:
   # HighPass:
   #   - cutoff: 0.08
   LowPass:
@@ -77,6 +80,6 @@ post_processing_pipeline:
     - kernel_size: 1000
   LowPass:
     - cutoff: 2
-  Detrend:
+  # Detrend:
   MinMaxScale:
     - center: True
