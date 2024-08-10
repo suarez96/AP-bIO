@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # TODO make each metric a callable
-def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=False, model_name='Trained Model', **kwargs):
+def evaluate_model(preds, gt, device='cpu', num_windows_per_subject=[], test_idxs=[], plot=False, model_name='Trained Model', **kwargs):
     start = 0
     scores = []
     for n_windows, test_idx in zip(num_windows_per_subject, test_idxs):
@@ -41,6 +41,7 @@ def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=Fal
 
         # TODO: fix cwt transform to not depend on signal sample_rate 
         cwt = Transforms.CWT(
+            device=device,
             plot=plot, 
             lower_bound=kwargs.get("low", 0.1), 
             higher_bound=kwargs.get("high", 0.55), 

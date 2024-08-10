@@ -30,7 +30,8 @@ def build_transforms(pipeline=None, pipeline_args=None, search_space=None):
         'ConvolveSmoothing': ConvolveSmoothing,
         'LowPass': LowPass,
         'HighPass': HighPass,
-        'SSA': SSA
+        'SSA': SSA,
+        'CoarseDownsample': CoarseDownsample,
     }
 
     created_pipeline = []
@@ -47,6 +48,14 @@ def build_transforms(pipeline=None, pipeline_args=None, search_space=None):
         )
 
     return created_pipeline
+
+
+def find_transform(pipeline: list, transform):
+    # find index of particular Transform type in pipeline
+    matches = []
+    for t in pipeline:
+        matches.append(isinstance(t, transform))
+    return [i for i, match in enumerate(matches) if match][0]
 
 class Transform(ABC):
     """
