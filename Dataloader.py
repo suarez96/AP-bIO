@@ -1,5 +1,4 @@
 from Data import MarshData, FantasiaData
-from Transforms import WPC
 import Transforms
 from torch.utils.data import DataLoader, TensorDataset
 import torch
@@ -12,7 +11,7 @@ from tqdm import tqdm
 from operator import itemgetter
 import constants
 import matplotlib.pyplot as plt
-
+import copy
 
 class LoaderBuilder:
 
@@ -39,6 +38,19 @@ class LoaderBuilder:
         self.global_ip_pipeline = Transforms.build_transforms(
             global_ip_pipeline
         )
+        ecg_crop_fn_idx = Transforms.find_transform(
+            self.global_ecg_pipeline,
+            Transforms.Crop
+        )
+        ip_crop_fn_idx = Transforms.find_transform(
+            self.global_ip_pipeline,
+            Transforms.Crop
+        )
+        # make sure both ECG and IP are using the same crops. messy but it works
+        assert ecg_crop_fn_idx.__repr__() == ip_crop_fn_idx.__repr__()
+        is_multi_crop = type(self.global_ecg_pipeline[ecg_crop_fn_idx].start) == list
+        if is_multi_crop:
+            self.apply_multi_crop(crop_fn_idx=ecg_crop_fn_idx)
         print("self.global_ecg_pipeline", self.global_ecg_pipeline)
         print("self.global_ip_pipeline", self.global_ip_pipeline)
         self.batch_size = batch_size
@@ -47,6 +59,34 @@ class LoaderBuilder:
         self.framework = framework
         self.visualize=visualize
 
+    def apply_multi_crop(self, crop_fn_idx):
+
+        # make new full dataset with that cropped copy
+        adjusted_full_dataset = {}
+        # grab the crop object
+        crop_fn = self.global_ecg_pipeline[crop_fn_idx] # make sure that Crop is 0 TODO 
+        # grab the starts and ends
+        starts, ends = crop_fn.start, crop_fn.end
+        assert len(starts) == len(ends)
+        # go through all full_dataset samples
+        for subject_num, sample in self.full_dataset.items():
+            # make N copies of each sample in self.full_dataset, N == # starts == # ends
+            for i, (start, end) in enumerate(zip(starts, ends)):
+                new_key = f"{subject_num}_crop_{i}"
+                # TODO FIX THESE LINES. Make this a different copy
+                # new MarshData object with all the attributes of the 'sample' variable
+                # sample_copy = copy.copy(sample)
+                sample_copy = copy.deepcopy(sample)
+                # UNTIL HERE
+                crop_instance = Transforms.Crop(start=start, end=end)
+                # apply crop with start i and end i
+                sample_copy.ECG().transform(transforms=[crop_instance])
+                sample_copy.ECG_ENV().transform(transforms=[crop_instance])
+                sample_copy.IP().transform(transforms=[crop_instance])
+                adjusted_full_dataset[new_key] = sample_copy
+        del self.global_ecg_pipeline[crop_fn_idx]
+        del self.global_ip_pipeline[crop_fn_idx]
+        self.full_dataset = adjusted_full_dataset
 
     def build_ECG_input_windows(
             self,
@@ -183,7 +223,13 @@ class LoaderBuilder:
             # cast all idxs to int in case
             idxs = [int(idx) for idx in idxs]
 
-        dataset = itemgetter(*idxs)(self.full_dataset)
+        # if indices are strings because of multicrop
+        try:
+            dataset = [v for k, v in self.full_dataset.items() if int(k.split('_')[0]) in idxs]
+        # if not multicrop then indices are integers
+        except AttributeError:
+            dataset = itemgetter(*idxs)(self.full_dataset)
+            
         if len(idxs) == 1:
             dataset = tuple([dataset])
 

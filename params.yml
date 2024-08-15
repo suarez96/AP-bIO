@@ -1,13 +1,13 @@
 desc: "large test on supercomputer with 25/10 and multiple crops"
 
 data:
-  train_samples: 25
+  train_samples: 2
 
 learner_params:
   jump_size: 10 # num samples that sliding window jumps forward for every train signal
   batch_size: 128 # data loader batch size
   lr: 0.0003
-  iters: 10
+  iters: 2
 
 model_params:
   seq_len: 256
@@ -32,8 +32,8 @@ global_ecg_pipeline:
   # Quantize:
   #   - precision: 16
   Crop:
-    - starts: [60, 350, 500, 820]
-    - ends: [170, 400, 580, 890]
+    - start: [60, 350, 500, 820]
+    - end: [170, 400, 580, 890]
   SSA:
     - window_size: 150
     - remove_components: True
@@ -54,8 +54,8 @@ global_ecg_pipeline:
 
 global_ip_pipeline:
   Crop:
-    - starts: [60, 350, 500, 820]
-    - ends: [170, 400, 580, 890]
+    - start: [60, 350, 500, 820]
+    - end: [170, 400, 580, 890]
   MinMaxScale: # can be removed
     - _min: -0.00016327855480638344
     - _max: 0.00032915616510091866

@@ -7,8 +7,8 @@ import pywt
 import matplotlib.pyplot as plt
 import math
 import scipy
-import ptwt
-import torch
+# import ptwt
+# import torch
 from tqdm import tqdm
 from pyts.decomposition import SingularSpectrumAnalysis
 from functools import partial
@@ -49,6 +49,13 @@ def build_transforms(pipeline=None, pipeline_args=None, search_space=None):
 
     return created_pipeline
 
+def find_transform(pipeline: list, transform):
+    # find index of particular Transform type in pipeline
+    matches = []
+    for t in pipeline:
+        matches.append(isinstance(t, transform))
+    return [i for i, match in enumerate(matches) if match][0]
+
 class Transform(ABC):
     """
     Base class. Abstract
@@ -79,17 +86,19 @@ class Transform(ABC):
 
 class Crop(Transform):
     
-    def __init__(self, starts, ends=None, lengths=None, default_sample_rate=250):
+    def __init__(self, start, end=None, length=None, default_sample_rate=250):
         """
         start: start of crop in seconds
         end: end of crop in seconds
         length: length of crop in seconds
         """
-        assert ends or lengths, "One of 'end' or 'length' must be defined"
+        assert end or length, "One of 'end' or 'length' must be defined"
         super().__init__()
-        self.starts = starts
-        self.ends = ends
-        self.lengths = lengths
+        # self.start = start
+        # self.end = end
+        self.start = start if isinstance(start, list) else [start]
+        self.end = end if isinstance(end, list) else [end]
+        self.length = length
         self.default_sample_rate = default_sample_rate
 
     def _transform(self, x, signal):
@@ -98,20 +107,30 @@ class Crop(Transform):
         except AttributeError:
             sample_rate = self.default_sample_rate
         
+        result = []
+        for s, e in zip(self.start, self.end):
+            if e is not None:
+                result.append(x[int(s*sample_rate):int(e*sample_rate)])
+            else:
+                result.append(x[int(s*sample_rate):int(s*sample_rate+self.length*sample_rate)])
+        return result
+    
+        # # Original single crop
         # if self.end is not None:
         #     return x[self.start*sample_rate:self.end*sample_rate]
         # else:
         #     return x[self.start*sample_rate:self.start*sample_rate+self.length*sample_rate]
 
-        cropped_sections = []
-        for start, end in zip(self.starts, self.ends):
-            cropped_sections.append(x[start*sample_rate:end*sample_rate])
+        ## Concatenated
+        # cropped_sections = []
+        # for start, end in zip(self.starts, self.ends):
+        #     cropped_sections.append(x[start*sample_rate:end*sample_rate])
         
-        return np.concatenate(cropped_sections)
+        # return np.concatenate(cropped_sections)
 
 
     def __repr__(self):
-        return f"Crop(starts={self.starts}, ends={self.ends}, lengths={self.lengths}, default_sample_rate={self.default_sample_rate}"
+        return f"Crop(start={self.start}, end={self.end}, length={self.length}, default_sample_rate={self.default_sample_rate})"
 
 class SplineEnvelope(Transform):
     """
@@ -363,14 +382,16 @@ class CWT(Transform):
         if self.scales is None:
             self.scales = (self.wavelet_B_param*signal.sample_rate)/self.freq_space
         
-        if isinstance(x, np.ndarray):
-            device = torch.device(self.device)
-            x = torch.tensor(x, dtype=torch.float32, device=device)
+        # if isinstance(x, np.ndarray):
+        #     device = torch.device(self.device)
+        #     x = torch.tensor(x, dtype=torch.float32, device=device)
 
         coefficients = []
         for scale in self.scales:
-            coef, _ = ptwt.cwt(x, [scale], self.wavelet, sampling_period=1/signal.sample_rate)
-            coefficients.append(coef[0].cpu().numpy())
+            # coef, _ = ptwt.cwt(x, [scale], self.wavelet, sampling_period=1/signal.sample_rate)
+            # coefficients.append(coef[0].cpu().numpy())
+            coef, _ = pywt.cwt(x, [scale], self.wavelet, sampling_period=1/signal.sample_rate)
+            coefficients.append(coef[0])
 
         coefficients = np.array(coefficients)
         if self.plot or self.save_visuals:
