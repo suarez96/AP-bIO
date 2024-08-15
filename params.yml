@@ -34,8 +34,8 @@ global_ecg_pipeline:
   Crop:
       # - start: 60
       # - end: 200
-    - start: [60, 350] #, 500, 820]
-    - end: [170, 400] #, 580, 890]
+    - start: [10, 310, 490, 730]
+    - end: [170, 410, 600, 890]
   # SSA:
   #   - window_size: 200
   #   - remove_components: True
@@ -55,8 +55,8 @@ global_ip_pipeline:
   Crop:
       # - start: 60
       # - end: 200
-    - start: [60, 350] #, 500, 820]
-    - end: [170, 400] #, 580, 890]
+    - start: [10, 310, 490, 730]
+    - end: [170, 410, 600, 890]
   MinMaxScale: # can be removed
     - _min: -0.00016327855480638344
     - _max: 0.00032915616510091866

@@ -56,7 +56,7 @@ def run(args):
 
         # TODO make train/test loaders separately since they each use different jump sizes. Could remove train/test boolean args # TODO add data leakage check
         # build train dataloader
-        train_loader, _ = train_loader_builder.build_loaders(
+        train_loader, _, _ = train_loader_builder.build_loaders(
             train=True,
             idxs=args['train_indices']
         )
@@ -95,7 +95,7 @@ def run(args):
     
     # test logic
     # build test loader
-    test_loader, test_num_windows_per_subject = test_loader_builder.build_loaders(
+    test_loader, test_num_windows_per_subject, adjusted_indices = test_loader_builder.build_loaders(
         train=False,
         valid_size=0,
         shuffle=False,
@@ -123,7 +123,7 @@ def run(args):
         preds=preds_full, 
         gt=gt_full,
         num_windows_per_subject=test_num_windows_per_subject,
-        test_idxs=args['test_indices'],
+        test_idxs=adjusted_indices,
         plot=args['visualize'],
         model_name=model_name,
         **args['yaml_args']['cwt_evaluation'], 

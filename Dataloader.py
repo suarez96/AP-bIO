@@ -38,6 +38,21 @@ class LoaderBuilder:
         self.global_ip_pipeline = Transforms.build_transforms(
             global_ip_pipeline
         )
+
+        print("self.global_ecg_pipeline", self.global_ecg_pipeline)
+        print("self.global_ip_pipeline", self.global_ip_pipeline)
+        self.batch_size = batch_size
+        self.seq_len = seq_len
+        self.jump_size = jump_size
+        self.framework = framework
+        self.visualize=visualize
+        self.idxs = []
+
+    def apply_multi_crop(self, dataset: tuple):
+
+        assert self.idxs, "Subject list undefined"
+        assert len(self.idxs) == len(dataset), "Number of subjects and dataset length do not match!"
+
         ecg_crop_fn_idx = Transforms.find_transform(
             self.global_ecg_pipeline,
             Transforms.Crop
@@ -49,18 +64,8 @@ class LoaderBuilder:
         # make sure both ECG and IP are using the same crops. messy but it works
         assert self.global_ecg_pipeline[ecg_crop_fn_idx].__repr__() == self.global_ip_pipeline[ip_crop_fn_idx].__repr__(), "IP crop does not match ECG crop"
         is_multi_crop = type(self.global_ecg_pipeline[ecg_crop_fn_idx].start) == list
-        if is_multi_crop:
-            self.apply_multi_crop(ecg_crop_fn_idx=ecg_crop_fn_idx, ip_crop_fn_idx=ip_crop_fn_idx)
-
-        print("self.global_ecg_pipeline", self.global_ecg_pipeline)
-        print("self.global_ip_pipeline", self.global_ip_pipeline)
-        self.batch_size = batch_size
-        self.seq_len = seq_len
-        self.jump_size = jump_size
-        self.framework = framework
-        self.visualize=visualize
-
-    def apply_multi_crop(self, ecg_crop_fn_idx, ip_crop_fn_idx):
+        if not is_multi_crop:
+            return self.idxs, dataset
 
         # make new full dataset with that cropped copy
         adjusted_full_dataset = {}
@@ -70,8 +75,8 @@ class LoaderBuilder:
         starts, ends = crop_fn.start, crop_fn.end
         assert len(starts) == len(ends)
         # go through all full_dataset samples
-        for subject_num, sample in self.full_dataset.items():
-            # make N copies of each sample in self.full_dataset, N == # starts == # ends
+        for subject_num, sample in zip(self.idxs, dataset):
+            # make N copies of each sample in dataset, N == # starts == # ends
             for i, (start, end) in enumerate(zip(starts, ends)):
                 new_key = f"{subject_num}_crop_{i}"
                 # new MarshData object with all the attributes of the 'sample' variable
@@ -84,7 +89,7 @@ class LoaderBuilder:
                 adjusted_full_dataset[new_key] = sample_copy
         self.global_ecg_pipeline = self.global_ecg_pipeline[:ecg_crop_fn_idx] + self.global_ecg_pipeline[ecg_crop_fn_idx+1:]
         self.global_ip_pipeline =  self.global_ip_pipeline[:ip_crop_fn_idx] +  self.global_ip_pipeline[ip_crop_fn_idx+1:]
-        self.full_dataset = adjusted_full_dataset
+        return list(adjusted_full_dataset.keys()), tuple(adjusted_full_dataset.values())
 
     def build_ECG_input_windows(
             self,
@@ -212,32 +217,28 @@ class LoaderBuilder:
 
         if idxs is None:
             if train:
-                idxs = constants.argsort_subject_ids_train[:int(self.train_samples)]
+                self.idxs = constants.argsort_subject_ids_train[:int(self.train_samples)]
             else:
-                idxs = constants.argsort_subject_ids_train[int(self.train_samples):] + constants.argsort_subject_ids_test
+                self.idxs = constants.argsort_subject_ids_train[int(self.train_samples):] + constants.argsort_subject_ids_test
 
         else:
             # cast all idxs to int in case
-            idxs = [int(idx) for idx in idxs]
+            self.idxs = [int(idx) for idx in idxs]
 
-        # if indices are strings because of multicrop
-        try:
-            dataset = [v for k, v in self.full_dataset.items() if int(k.split('_')[0]) in idxs]
-        # if not multicrop then indices are integers
-        except AttributeError:
-            dataset = itemgetter(*idxs)(self.full_dataset)
+        tuple_dataset = itemgetter(*self.idxs)(self.full_dataset)
+        adjusted_indices, tuple_dataset = self.apply_multi_crop(tuple_dataset)
 
-        if len(idxs) == 1:
-            dataset = tuple([dataset])
+        if len(self.idxs) == 1:
+            tuple_dataset = tuple([tuple_dataset])
 
         dataloader, n_windows_per_subject = self.loader_from_dataset(
-            dataset=dataset,
+            dataset=tuple_dataset,
             valid_size=valid_size, 
             shuffle=shuffle,
             torch_loader=torch_loader,
             jump_size=self.jump_size if train else 1,
             **kwargs
         )
-        assert len(n_windows_per_subject) == len(dataset)
+        assert len(n_windows_per_subject) == len(tuple_dataset)
 
-        return dataloader, n_windows_per_subject
+        return dataloader, n_windows_per_subject, adjusted_indices
