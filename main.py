@@ -7,6 +7,7 @@ from evaluate import evaluate_model
 from fastai.callback.schedule import ParamScheduler
 import time
 import logging
+import copy
 logger = logging.getLogger(__name__)
 
 parser = argparse.ArgumentParser(
@@ -48,12 +49,14 @@ def run(args):
         visualize=args['visualize']
     )
 
+    train_loader_builder = copy.deepcopy(loader_builder)
+    test_loader_builder = copy.deepcopy(loader_builder)
     # train logic
     if not args['eval_only']:
 
         # TODO make train/test loaders separately since they each use different jump sizes. Could remove train/test boolean args # TODO add data leakage check
         # build train dataloader
-        train_loader, _ = loader_builder.build_loaders(
+        train_loader, _ = train_loader_builder.build_loaders(
             train=True,
             idxs=args['train_indices']
         )
@@ -92,7 +95,7 @@ def run(args):
     
     # test logic
     # build test loader
-    test_loader, test_num_windows_per_subject = loader_builder.build_loaders(
+    test_loader, test_num_windows_per_subject = test_loader_builder.build_loaders(
         train=False,
         valid_size=0,
         shuffle=False,

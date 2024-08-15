@@ -47,7 +47,7 @@ class LoaderBuilder:
             Transforms.Crop
         )
         # make sure both ECG and IP are using the same crops. messy but it works
-        assert ecg_crop_fn_idx.__repr__() == ip_crop_fn_idx.__repr__(), "IP crop does not match ECG crop"
+        assert self.global_ecg_pipeline[ecg_crop_fn_idx].__repr__() == self.global_ip_pipeline[ip_crop_fn_idx].__repr__(), "IP crop does not match ECG crop"
         is_multi_crop = type(self.global_ecg_pipeline[ecg_crop_fn_idx].start) == list
         if is_multi_crop:
             self.apply_multi_crop(ecg_crop_fn_idx=ecg_crop_fn_idx, ip_crop_fn_idx=ip_crop_fn_idx)
@@ -82,7 +82,8 @@ class LoaderBuilder:
                 sample_copy.ECG_ENV().transform(transforms=[crop_fn], inplace=True)
                 sample_copy.IP().transform(transforms=[crop_fn], inplace=True)
                 adjusted_full_dataset[new_key] = sample_copy
-        del self.global_ecg_pipeline[ecg_crop_fn_idx]; del self.global_ip_pipeline[ip_crop_fn_idx]
+        self.global_ecg_pipeline = self.global_ecg_pipeline[:ecg_crop_fn_idx] + self.global_ecg_pipeline[ecg_crop_fn_idx+1:]
+        self.global_ip_pipeline =  self.global_ip_pipeline[:ip_crop_fn_idx] +  self.global_ip_pipeline[ip_crop_fn_idx+1:]
         self.full_dataset = adjusted_full_dataset
 
     def build_ECG_input_windows(

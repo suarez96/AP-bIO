@@ -440,15 +440,22 @@ def WPC(cwt1, cwt2, fs=250, freq=np.linspace(0.1, 0.55, 60), num_cyc=5):
         win_len = math.floor(win_len_sec * fs) # in samples
         num_windows = math.floor(sig_len / win_len)
         pc_f = np.zeros([num_windows])
-        for w_idx in range(num_windows):
-            start_idx = w_idx*win_len
-            end_idx = start_idx + win_len
-            #print(start_idx, end_idx)
-            pc_f[w_idx] = WPC_of_coeffs(coeffs1[f_idx,start_idx:end_idx],
-                                        coeffs2[f_idx,start_idx:end_idx])
-       
-        resampled_pc_f = np.clip(scipy.signal.resample_poly(pc_f, M, num_windows), 0, 1)
-       
+        try:
+            for w_idx in range(num_windows):
+                start_idx = w_idx*win_len
+                end_idx = start_idx + win_len
+                #print(start_idx, end_idx)
+                pc_f[w_idx] = WPC_of_coeffs(coeffs1[f_idx,start_idx:end_idx],
+                                            coeffs2[f_idx,start_idx:end_idx])
+
+            if M == 0 or num_windows == 0:
+                raise RuntimeError("Ground Truth and Prediction are too short to evaluate at specified frequencies!")
+
+            resampled_pc_f = np.clip(scipy.signal.resample_poly(pc_f, M, num_windows), 0, 1)
+        except RuntimeError as e:
+            print(e)
+            return t, None, np.array([-1])
+
         # consider whether any magnitudes > 1
         PC[f_idx,:] = np.transpose(resampled_pc_f)
 

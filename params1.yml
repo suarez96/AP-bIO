@@ -1,13 +1,13 @@
 desc: "multicrop test"
 
 data:
-  train_samples: 3
+  train_samples: 2
 
 learner_params:
   jump_size: 10 # num samples that sliding window jumps forward for every train signal
   batch_size: 128 # data loader batch size
   lr: 0.0003
-  iters: 2
+  iters: 1
 
 model_params:
   seq_len: 256

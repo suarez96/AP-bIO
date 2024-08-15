@@ -1,13 +1,13 @@
 desc: "multicrop test"
 
 data:
-  train_samples: 3
+  train_samples: 2
 
 learner_params:
   jump_size: 10 # num samples that sliding window jumps forward for every train signal
   batch_size: 128 # data loader batch size
   lr: 0.0003
-  iters: 2
+  iters: 1
 
 model_params:
   seq_len: 256
@@ -34,8 +34,8 @@ global_ecg_pipeline:
   Crop:
       # - start: 60
       # - end: 200
-      - start: [60, 210]
-      - end: [200, 220]
+    - start: [60, 350] #, 500, 820]
+    - end: [170, 400] #, 580, 890]
   # SSA:
   #   - window_size: 200
   #   - remove_components: True
@@ -55,8 +55,8 @@ global_ip_pipeline:
   Crop:
       # - start: 60
       # - end: 200
-      - start: [60, 210]
-      - end: [200, 220]
+    - start: [60, 350] #, 500, 820]
+    - end: [170, 400] #, 580, 890]
   MinMaxScale: # can be removed
     - _min: -0.00016327855480638344
     - _max: 0.00032915616510091866
