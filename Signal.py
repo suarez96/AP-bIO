@@ -47,17 +47,16 @@ class Signal:
         self.transformed_data=None
         self.is_original = True
     
-    def plot(self, start_time=0, base_fig=None, transformed=False):
+    def plot(self, start_time = 0, base_fig=None, transformed=False):
         """
         start_time: start time in seconds
         base_fig: figure to add traces to
         """
         if transformed:
             assert self.transformed_data is not None, "Data must be transformed before calling 'plot' with transformed=True"
-            data_to_plot = self.transformed_data
-        else:
-            data_to_plot = [self.data]  # Wrap original data in a list for consistent handling
-
+        
+        x = self.transformed_data if transformed else self.data
+        t = np.arange(start_time, start_time+x.shape[0]/self.sample_rate, 1/self.sample_rate)
         if base_fig is None:
             base_fig = go.Figure(
                 layout=dict(
@@ -69,63 +68,17 @@ class Signal:
             base_fig.update_layout(plot_bgcolor='rgba(240, 240, 240, 0.8)', showlegend=True)
             base_fig.update_xaxes(showline=True, mirror=True, linewidth=1, linecolor='black')
             base_fig.update_yaxes(showline=True, mirror=True, linewidth=1, linecolor='black')
-
-        colors = px.colors.qualitative.Plotly
-
-        for i, segment in enumerate(data_to_plot):
-            segment_start_time = start_time
-            if transformed:
-                segment_start_time += sum(len(s) for s in data_to_plot[:i]) / self.sample_rate
-
-            t = np.arange(segment_start_time, 
-                          segment_start_time + len(segment) / self.sample_rate, 
-                          1 / self.sample_rate)
-
-            base_fig.add_trace(
-                go.Scatter(
-                    x=t,
-                    y=segment,
-                    name=f'{self.type} (Segment {i+1})' if transformed else self.type,
-                    line=dict(color=colors[i % len(colors)]),
-                    marker=dict(color=self.color_map[self.type])
-                )
+        
+        base_fig.add_trace(
+            go.Scatter(
+                x=t,
+                y=x,
+                name=self.type,
+                marker=dict(color=self.color_map[self.type])
             )
-
+        )
         base_fig.update_traces(opacity=0.8)
         return base_fig
-
-    # def plot(self, start_time = 0, base_fig=None, transformed=False):
-    #     """
-    #     start_time: start time in seconds
-    #     base_fig: figure to add traces to
-    #     """
-    #     if transformed:
-    #         assert self.transformed_data is not None, "Data must be transformed before calling 'plot' with transformed=True"
-        
-    #     x = self.transformed_data if transformed else self.data
-    #     t = np.arange(start_time, start_time+x.shape[0]/self.sample_rate, 1/self.sample_rate)
-    #     if base_fig is None:
-    #         base_fig = go.Figure(
-    #             layout=dict(
-    #                 title=f'Signals: {self.filepath}',
-    #                 xaxis_title='Time (s)',
-    #                 yaxis_title='Signal Value'
-    #             )
-    #         )
-    #         base_fig.update_layout(plot_bgcolor='rgba(240, 240, 240, 0.8)', showlegend=True)
-    #         base_fig.update_xaxes(showline=True, mirror=True, linewidth=1, linecolor='black')
-    #         base_fig.update_yaxes(showline=True, mirror=True, linewidth=1, linecolor='black')
-        
-    #     base_fig.add_trace(
-    #         go.Scatter(
-    #             x=t,
-    #             y=x,
-    #             name=self.type,
-    #             marker=dict(color=self.color_map[self.type])
-    #         )
-    #     )
-    #     base_fig.update_traces(opacity=0.8)
-    #     return base_fig
 
     def __repr__(self):
         return str({
@@ -142,23 +95,13 @@ class Signal:
         """
         Apply a series of transforms defined in the pipeline called "transforms".
         """
-        # self.transformed_data = self.data.copy()
-        self.transformed_data = [self.data.copy()]
+        self.transformed_data = self.data.copy()
         for t in transforms:
             # lambda function support
             if isinstance(t, LambdaType):
-                # self.transformed_data = t(self.transformed_data)
-                self.transformed_data = [t(seg) for seg in self.transformed_data]
+                self.transformed_data = t(self.transformed_data)
             else:
-                # self.transformed_data = t(self)
-                new_data = []
-                for seg in self.transformed_data:
-                    result = t(seg)
-                    if isinstance(result, list):
-                        new_data.extend(result)
-                    else:
-                        new_data.append(result)
-                self.transformed_data = new_data
+                self.transformed_data = t(self)
         # replace data with transformed data
         if inplace:
             self.data=self.transformed_data

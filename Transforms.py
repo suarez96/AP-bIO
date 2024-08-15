@@ -7,8 +7,8 @@ import pywt
 import matplotlib.pyplot as plt
 import math
 import scipy
-# import ptwt
-# import torch
+import ptwt
+import torch
 from tqdm import tqdm
 from pyts.decomposition import SingularSpectrumAnalysis
 from functools import partial
@@ -94,10 +94,8 @@ class Crop(Transform):
         """
         assert end or length, "One of 'end' or 'length' must be defined"
         super().__init__()
-        # self.start = start
-        # self.end = end
-        self.start = start if isinstance(start, list) else [start]
-        self.end = end if isinstance(end, list) else [end]
+        self.start = start
+        self.end = end
         self.length = length
         self.default_sample_rate = default_sample_rate
 
@@ -107,27 +105,10 @@ class Crop(Transform):
         except AttributeError:
             sample_rate = self.default_sample_rate
         
-        result = []
-        for s, e in zip(self.start, self.end):
-            if e is not None:
-                result.append(x[int(s*sample_rate):int(e*sample_rate)])
-            else:
-                result.append(x[int(s*sample_rate):int(s*sample_rate+self.length*sample_rate)])
-        return result
-    
-        # # Original single crop
-        # if self.end is not None:
-        #     return x[self.start*sample_rate:self.end*sample_rate]
-        # else:
-        #     return x[self.start*sample_rate:self.start*sample_rate+self.length*sample_rate]
-
-        ## Concatenated
-        # cropped_sections = []
-        # for start, end in zip(self.starts, self.ends):
-        #     cropped_sections.append(x[start*sample_rate:end*sample_rate])
-        
-        # return np.concatenate(cropped_sections)
-
+        if self.end is not None:
+            return x[self.start*sample_rate:self.end*sample_rate]
+        else:
+            return x[self.start*sample_rate:self.start*sample_rate+self.length*sample_rate]
 
     def __repr__(self):
         return f"Crop(start={self.start}, end={self.end}, length={self.length}, default_sample_rate={self.default_sample_rate})"
@@ -382,16 +363,16 @@ class CWT(Transform):
         if self.scales is None:
             self.scales = (self.wavelet_B_param*signal.sample_rate)/self.freq_space
         
-        # if isinstance(x, np.ndarray):
-        #     device = torch.device(self.device)
-        #     x = torch.tensor(x, dtype=torch.float32, device=device)
+        if isinstance(x, np.ndarray):
+            device = torch.device(self.device)
+            x = torch.tensor(x, dtype=torch.float32, device=device)
 
         coefficients = []
-        for scale in self.scales:
-            # coef, _ = ptwt.cwt(x, [scale], self.wavelet, sampling_period=1/signal.sample_rate)
-            # coefficients.append(coef[0].cpu().numpy())
-            coef, _ = pywt.cwt(x, [scale], self.wavelet, sampling_period=1/signal.sample_rate)
-            coefficients.append(coef[0])
+        for scale in tqdm(self.scales):
+            coef, _ = ptwt.cwt(x, [scale], self.wavelet, sampling_period=1/signal.sample_rate)
+            coefficients.append(coef[0].cpu().numpy())
+            # coef, _ = pywt.cwt(x, [scale], self.wavelet, sampling_period=1/signal.sample_rate)
+            # coefficients.append(coef[0])
 
         coefficients = np.array(coefficients)
         if self.plot or self.save_visuals:
@@ -453,7 +434,7 @@ def WPC(cwt1, cwt2, fs=250, freq=np.linspace(0.1, 0.55, 60), num_cyc=5):
             #print(start_idx, end_idx)
             pc_f[w_idx] = WPC_of_coeffs(coeffs1[f_idx,start_idx:end_idx],
                                         coeffs2[f_idx,start_idx:end_idx])
-       
+        print(num_windows)
         resampled_pc_f = np.clip(scipy.signal.resample_poly(pc_f, M, num_windows), 0, 1)
        
         # consider whether any magnitudes > 1

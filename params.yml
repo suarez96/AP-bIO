@@ -35,7 +35,7 @@ global_ecg_pipeline:
     - start: [60, 350, 500, 820]
     - end: [170, 400, 580, 890]
   SSA:
-    - window_size: 150
+    - window_size: 120
     - remove_components: True
     - n_components: 1
   MinMaxScale: # can be removed
@@ -80,6 +80,6 @@ post_processing_pipeline:
     - kernel_size: 1000
   LowPass:
     - cutoff: 2
-  # Detrend:
+  Detrend:
   MinMaxScale:
     - center: True

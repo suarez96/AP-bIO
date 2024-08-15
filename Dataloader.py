@@ -47,10 +47,11 @@ class LoaderBuilder:
             Transforms.Crop
         )
         # make sure both ECG and IP are using the same crops. messy but it works
-        assert ecg_crop_fn_idx.__repr__() == ip_crop_fn_idx.__repr__()
+        assert ecg_crop_fn_idx.__repr__() == ip_crop_fn_idx.__repr__(), "IP crop does not match ECG crop"
         is_multi_crop = type(self.global_ecg_pipeline[ecg_crop_fn_idx].start) == list
         if is_multi_crop:
-            self.apply_multi_crop(crop_fn_idx=ecg_crop_fn_idx)
+            self.apply_multi_crop(ecg_crop_fn_idx=ecg_crop_fn_idx, ip_crop_fn_idx=ip_crop_fn_idx)
+        
         print("self.global_ecg_pipeline", self.global_ecg_pipeline)
         print("self.global_ip_pipeline", self.global_ip_pipeline)
         self.batch_size = batch_size
@@ -59,12 +60,12 @@ class LoaderBuilder:
         self.framework = framework
         self.visualize=visualize
 
-    def apply_multi_crop(self, crop_fn_idx):
+    def apply_multi_crop(self, ecg_crop_fn_idx, ip_crop_fn_idx):
 
         # make new full dataset with that cropped copy
         adjusted_full_dataset = {}
         # grab the crop object
-        crop_fn = self.global_ecg_pipeline[crop_fn_idx] # make sure that Crop is 0 TODO 
+        crop_fn = self.global_ecg_pipeline[ecg_crop_fn_idx] # make sure that Crop is 0 TODO 
         # grab the starts and ends
         starts, ends = crop_fn.start, crop_fn.end
         assert len(starts) == len(ends)
@@ -73,19 +74,15 @@ class LoaderBuilder:
             # make N copies of each sample in self.full_dataset, N == # starts == # ends
             for i, (start, end) in enumerate(zip(starts, ends)):
                 new_key = f"{subject_num}_crop_{i}"
-                # TODO FIX THESE LINES. Make this a different copy
                 # new MarshData object with all the attributes of the 'sample' variable
-                # sample_copy = copy.copy(sample)
                 sample_copy = copy.deepcopy(sample)
-                # UNTIL HERE
-                crop_instance = Transforms.Crop(start=start, end=end)
+                crop_fn = Transforms.Crop(start=start, end=end)
                 # apply crop with start i and end i
-                sample_copy.ECG().transform(transforms=[crop_instance])
-                sample_copy.ECG_ENV().transform(transforms=[crop_instance])
-                sample_copy.IP().transform(transforms=[crop_instance])
+                sample_copy.ECG().transform(transforms=[crop_fn], inplace=True)
+                sample_copy.ECG_ENV().transform(transforms=[crop_fn], inplace=True)
+                sample_copy.IP().transform(transforms=[crop_fn], inplace=True)
                 adjusted_full_dataset[new_key] = sample_copy
-        del self.global_ecg_pipeline[crop_fn_idx]
-        del self.global_ip_pipeline[crop_fn_idx]
+        del self.global_ecg_pipeline[ecg_crop_fn_idx]; del self.global_ip_pipeline[ip_crop_fn_idx]
         self.full_dataset = adjusted_full_dataset
 
     def build_ECG_input_windows(
@@ -148,7 +145,7 @@ class LoaderBuilder:
                 plt.show()
 
 
-        return np.vstack(X_stack), np.stack(y_stack).flatten(), num_windows_per_subject
+        return np.vstack(X_stack), np.hstack(y_stack).flatten(), num_windows_per_subject
 
 
     def loader_from_dataset(
@@ -241,6 +238,6 @@ class LoaderBuilder:
             jump_size=self.jump_size if train else 1,
             **kwargs
         )
-        assert len(n_windows_per_subject) == len(idxs)
+        assert len(n_windows_per_subject) == len(dataset)
 
         return dataloader, n_windows_per_subject

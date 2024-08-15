@@ -48,7 +48,6 @@ def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=Fal
             model_name, test_idx, preds_subject, gt_subject, plot=plot, save_visuals=save_visuals, **kwargs
         )
 
-
         score = Transforms.WPC(
             preds_cwt, gt_cwt, 
             freq=np.linspace(
