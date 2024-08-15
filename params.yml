@@ -1,13 +1,13 @@
-desc: "NIAGARA FULL TEST. A"
+desc: "multicrop test"
 
 data:
-  train_samples: 25
+  train_samples: 3
 
 learner_params:
   jump_size: 10 # num samples that sliding window jumps forward for every train signal
   batch_size: 128 # data loader batch size
   lr: 0.0003
-  iters: 10
+  iters: 2
 
 model_params:
   seq_len: 256
@@ -32,8 +32,10 @@ global_ecg_pipeline:
   # Quantize:
   #   - precision: 16
   Crop:
-    - start: 10 # first 3 minutes in marsh data are unlabored breathing
-    - end: 720
+      # - start: 60
+      # - end: 200
+      - start: [60, 210]
+      - end: [200, 220]
   # SSA:
   #   - window_size: 200
   #   - remove_components: True
@@ -51,8 +53,10 @@ global_ecg_pipeline:
 
 global_ip_pipeline:
   Crop:
-    - start: 10 # first 3 minutes in marsh data are unlabored breathing
-    - end: 720
+      # - start: 60
+      # - end: 200
+      - start: [60, 210]
+      - end: [200, 220]
   MinMaxScale: # can be removed
     - _min: -0.00016327855480638344
     - _max: 0.00032915616510091866
