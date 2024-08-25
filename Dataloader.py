@@ -27,7 +27,6 @@ class LoaderBuilder:
         framework,
         visualize=False
     ):
-<<<<<<< HEAD
         self.marsh_path = marsh_path
         self.train_samples = train_samples
         self.full_dataset = {
@@ -38,45 +37,6 @@ class LoaderBuilder:
         )
         self.global_ip_pipeline = Transforms.build_transforms(
             global_ip_pipeline
-=======
-    """
-    Build the rolling windows from the ECG data inside each of the subject
-    signals.
-    Dataset: a list of MarshData or FantasiaData objects to iterate through
-
-    """
-
-    # matrices to feed to the dataloader
-    X_ecg_rolling_train_stack = []
-    y_ip_train_stack = []
-
-    # yaml args define the params of each transform
-    global_ecg_pipeline = Transforms.build_transforms(
-        args['yaml_args']['global_ecg_pipeline']
-    )
-    global_ip_pipeline = Transforms.build_transforms(
-        args['yaml_args']['global_ip_pipeline']
-    )
-
-    # take global ECG and break it into parts after applying transform
-    for subject in tqdm(dataset, desc="building dataloader..."):
-        
-        subject_id = int(subject.ECG().filepath.replace('\\', '/').split('/')[-2])
-        logger.info("Including subject:", subject_id)
-
-        input_ecg_raw = subject.ECG().transform(transforms=global_ecg_pipeline)
-        input_ip_raw = subject.IP().transform(transforms=global_ip_pipeline)
-
-        # extract transformed data
-        input_ecg = input_ecg_raw.transformed_data
-        input_ip = input_ip_raw.transformed_data
-
-        # get rolling windows
-        X_ecg_rolling = get_rolling_windows(
-            input_ecg, 
-            window_size=args['yaml_args']['hparams']['seq_len'], 
-            jump=args['yaml_args']['hparams']['jump_size']
->>>>>>> b665403 (requirements.txt and folder filepath bugfix (windows))
         )
 
         print("self.global_ecg_pipeline", self.global_ecg_pipeline)
