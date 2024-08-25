@@ -20,11 +20,7 @@ def create_cwt_transform(model_name, test_idx, data_type, plot=False, save_visua
     )
 
 # TODO make each metric a callable
-<<<<<<< HEAD
 def evaluate_model(preds, gt, device='cpu', num_windows_per_subject=[], test_idxs=[], plot=False, save_visuals=False, model_name=None, post_processing_pipeline=[], **kwargs):
-=======
-def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=False, save_visuals=False, model_name=None, **kwargs):
->>>>>>> 5c38695 (save_visuals flag to save eval visuals)
     start = 0
     scores = []
     if save_visuals:
@@ -51,13 +47,8 @@ def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=Fal
         # TODO make plotting separate function
         if plot or save_visuals:
             plt.figure(f"{model_name}_{test_idx}")
-<<<<<<< HEAD
             plt.plot(preds_subject.transformed_data, label='predictions smoothed')
             plt.plot(gt_subject.transformed_data, label='ground truth')
-=======
-            plt.plot(preds_subject.transformed_data, label='Preds')
-            plt.plot(gt_subject.transformed_data, label='GT')
->>>>>>> 5c38695 (save_visuals flag to save eval visuals)
             plt.title("Postprocessed Predictions vs Ground Truth")
             plt.legend()
             if save_visuals:
@@ -66,22 +57,12 @@ def evaluate_model(preds, gt, num_windows_per_subject=[], test_idxs=[], plot=Fal
                 plt.show()
 
         # TODO: fix cwt transform to not depend on signal sample_rate 
-<<<<<<< HEAD
         cwt = Transforms.CWT(
             device=device,
             plot=plot, 
             lower_bound=kwargs.get("low", 0.1), 
             higher_bound=kwargs.get("high", 0.55), 
             resolution=kwargs.get("resolution", 60)
-=======
-        create_cwt_transform_partial = partial(
-            create_cwt_transform,
-            model_name=model_name,
-            test_idx=test_idx,
-            plot=plot,
-            save_visuals=save_visuals,
-            **kwargs
->>>>>>> 5c38695 (save_visuals flag to save eval visuals)
         )
 
         preds_cwt = create_cwt_transform_partial(data_type='Preds')(preds_subject)
