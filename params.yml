@@ -1,4 +1,4 @@
-desc: "multicrop test"
+desc: "build transforms test"
 
 data:
   train_samples: 2
@@ -32,10 +32,10 @@ global_ecg_pipeline:
   # Quantize:
   #   - precision: 16
   Crop:
-      # - start: 60
-      # - end: 200
-    - start: [10, 310, 490, 730]
-    - end: [170, 410, 600, 890]
+      - start: 10
+      - end: 120
+    # - start: [10, 310, 490, 730]
+    # - end: [170, 410, 600, 890]
   # SSA:
   #   - window_size: 200
   #   - remove_components: True
@@ -53,10 +53,10 @@ global_ecg_pipeline:
 
 global_ip_pipeline:
   Crop:
-      # - start: 60
-      # - end: 200
-    - start: [10, 310, 490, 730]
-    - end: [170, 410, 600, 890]
+      - start: 10
+      - end: 120
+    # - start: [10, 310, 490, 730]
+    # - end: [170, 410, 600, 890]
   MinMaxScale: # can be removed
     - _min: -0.00016327855480638344
     - _max: 0.00032915616510091866
@@ -75,3 +75,12 @@ batch_ecg_pipeline:
 batch_ip_pipeline:
 
 dataloader_pipeline:
+
+post_processing_pipeline:
+  ConvolveSmoothing: 
+    - kernel_size: 1000
+  LowPass:
+    - cutoff: 2
+  Detrend:
+  MinMaxScale:
+    - center: True

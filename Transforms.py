@@ -33,6 +33,7 @@ def build_transforms(pipeline=None, pipeline_args=None, search_space=None):
         'HighPass': HighPass,
         'SSA': SSA,
         'CoarseDownsample': CoarseDownsample,
+        'FIRFilter': FIRFilter,
     }
 
     created_pipeline = []

@@ -4,7 +4,6 @@ import Dataloader
 import Models
 import shutil # also move to export TODO
 from evaluate import evaluate_model
-from fastai.callback.schedule import ParamScheduler
 import time
 import logging
 import copy
@@ -13,7 +12,12 @@ logger = logging.getLogger(__name__)
 parser = argparse.ArgumentParser(
     description='Script to train breathing signal predictor based on ECG input.'
 )
-
+# FIR high pass filter
+# TODO add series processing to decimate resample => 250, 200, 150, 100, 50
+# Highlight quantitative improvements (WPC, Instantaneuous frequency, MSE, max error)
+# Step 1. Find top limit of SSA window size
+# Step 2. Lowpass filter on input ECG to see if HF prediction artifacts disappear WITHOUT final postprocessing 
+# Experiment A, no decimation. Experiment B, no decimation
 parser.add_argument('-y', '--yaml_path', type=str, help='Filepath to YAML file with training run params', default='params.yml')
 parser.add_argument('-e', '--eval-only', action='store_true', help='Only run evaluation, no training.')
 parser.add_argument('-n', '--name', type=str, help='id/name of the model to be tested')
@@ -125,7 +129,9 @@ def run(args):
         num_windows_per_subject=test_num_windows_per_subject,
         test_idxs=adjusted_indices,
         plot=args['visualize'],
-        model_name=model_name,
+        model_name=model_name, 
+        post_processing_pipeline=args['yaml_args']['post_processing_pipeline'],
+        # model_name = model.run_id
         **args['yaml_args']['cwt_evaluation'], 
     )
     print(f"DONE! \nScores: {scores}")
