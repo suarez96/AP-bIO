@@ -7,8 +7,11 @@ import pywt
 import matplotlib.pyplot as plt
 import math
 import scipy
-
+import ptwt
+import torch
 from tqdm import tqdm
+from pyts.decomposition import SingularSpectrumAnalysis
+import scipy
 
 def build_transforms(pipeline=None, pipeline_args=None, search_space=None):
     """
@@ -21,12 +24,16 @@ def build_transforms(pipeline=None, pipeline_args=None, search_space=None):
     # used for matching string arguments with the python
     translation_map = {
         'Crop': Crop,
+        'Quantize': Quantize,
         'MeanSubtraction': MeanSubtraction,
         'MinMaxScale': MinMaxScale,
         'Detrend': Detrend,
         'ConvolveSmoothing': ConvolveSmoothing,
         'LowPass': LowPass,
         'HighPass': HighPass,
+        'SSA': SSA,
+        'CoarseDownsample': CoarseDownsample,
+        'FIRFilter': FIRFilter,
     }
 
     created_pipeline = []
@@ -43,6 +50,14 @@ def build_transforms(pipeline=None, pipeline_args=None, search_space=None):
         )
 
     return created_pipeline
+
+
+def find_transform(pipeline: list, transform):
+    # find index of particular Transform type in pipeline
+    matches = []
+    for t in pipeline:
+        matches.append(isinstance(t, transform))
+    return [i for i, match in enumerate(matches) if match][0]
 
 class Transform(ABC):
     """
@@ -98,6 +113,32 @@ class Crop(Transform):
         else:
             return x[self.start*sample_rate:self.start*sample_rate+self.length*sample_rate]
 
+    def __repr__(self):
+        return f"Crop(start={self.start}, end={self.end}, length={self.length}, default_sample_rate={self.default_sample_rate})"
+
+class Quantize(Transform):
+
+    np_precisions = {
+        16: np.float16,
+        32: np.float32,
+        64: np.float64,
+    }
+    
+    def __init__(self, precision=32):
+        """
+        precision: desired floating point precision of output
+        """
+        super().__init__()
+        self.precision = int(precision)
+        assert self.precision in Quantize.np_precisions, f"Unsupported precision {self.precision}"
+
+    def _transform(self, x, signal):
+        return x.astype(Quantize.np_precisions[self.precision])
+
+    def __repr__(self):
+        return f"Quantize(precision={self.precision})"
+
+# TODO fix plotting for this function
 class SplineEnvelope(Transform):
     """
     Based on charlton work, the spline envelope based on the ECG signal is used as a reference for the breathing rate.
@@ -152,6 +193,9 @@ class MeanSubtraction(Transform):
     def _transform(self, x, signal):
         return x-x.mean(axis=-1, keepdims=True)
 
+    def __repr__(self):
+        return "MeanSubtraction()"
+
 class LowPass(Transform):
     """
     Lowpass filter. Attenuates HIGH frequencies, only allowing the "lows to pass"
@@ -179,6 +223,30 @@ class LowPass(Transform):
         y = scipy.signal.filtfilt(b, a, x)
         return y
 
+    def __repr__(self):
+        return f"LowPass(cutoff={self.cutoff}, fs={self.fs}, order={self.order})"
+
+class FIRFilter(Transform):
+    """
+    order: Length of the filter (number of coefficients, i.e. the filter order + 1). numtaps must be odd if a passband includes the Nyquist frequency.
+    """
+    def __init__(self, cutoff, order, pass_zero_type, fs=250):
+        super().__init__()
+        self.cutoff = cutoff
+        self.fs = fs
+        self.order = order
+        self.numtaps = order + 1
+        self.pass_zero_type = pass_zero_type
+        self.b, self.a = scipy.signal.firwin(self.numtaps, self.cutoff, pass_zero=self.pass_zero_type, fs=self.fs), 1
+    
+    # Function to apply the lowpass filter
+    def _transform(self, x, signal):
+        # Use filtfilt to get the zero phase filtered signal
+        filtered_signal = scipy.signal.filtfilt(self.b, self.a, x)
+        return filtered_signal
+
+    def __repr__(self):
+        return f"LowPass(cutoff={self.cutoff}, fs={self.fs}, order={self.order}, pass_zero_type={self.pass_zero_type}, b={self.b}, a={self.a})"
 
 class HighPass(Transform):
     """
@@ -207,6 +275,9 @@ class HighPass(Transform):
         y = scipy.signal.filtfilt(b, a, x)
         return y
 
+    def __repr__(self):
+        return f"HighPass(cutoff={self.cutoff}, fs={self.fs}, order={self.order})"
+
 class Detrend(Transform):
     """
     Removes the LINEAR trend in any signal. Not useful for removing polynomial trends of degree > 1
@@ -218,6 +289,9 @@ class Detrend(Transform):
         
     def _transform(self, x, signal):
         return self.fn(x)
+
+    def __repr__(self):
+        return "Detrend()"
 
 class ConvolveSmoothing(Transform):
     """
@@ -231,6 +305,44 @@ class ConvolveSmoothing(Transform):
         
     def _transform(self, x, signal):
         return np.convolve(x, np.ones((self.kernel_size,))/self.kernel_size, mode=self.mode)
+
+    def __repr__(self):
+        return f"ConvolveSmoothing(kernel_size={self.kernel_size}, mode={self.mode})"
+
+class CoarseDownsample(Transform):
+
+    def __init__(self, factor=10):
+        super().__init__()
+        self.factor = factor
+        
+    def _transform(self, x, signal):
+        return x[::self.factor]
+
+    def __repr__(self):
+        return f"CoarseDownsample(factor={self.factor})"
+
+class SSA(Transform):
+    """
+    Perform independent component analysis, using sklearn fastICA
+    """
+    def __init__(self, window_size=250, subtract_components=False, num_components=1, **kwargs):
+        super().__init__()
+        self.subtract_components = subtract_components
+        self.num_components = num_components
+        self.window_size = window_size
+        
+    def _transform(self, x, signal):
+        transformer = SingularSpectrumAnalysis(window_size=self.window_size)
+        ssa_components = transformer.fit_transform(x.reshape(1, -1)).reshape(self.window_size, -1)
+        del transformer
+        if self.subtract_components:
+            return x - ssa_components[:self.num_components].sum(axis=0)
+        else:
+            return ssa_components
+
+    def __repr__(self):
+        return f"SSA(window_size={self.window_size}, num_components={self.num_components}, subtract_components={self.subtract_components})"
+
 
 class MinMaxScale(Transform):
     """
@@ -251,6 +363,9 @@ class MinMaxScale(Transform):
             min_max_scaled = (x-self.min)/(self.max-self.min) 
         return min_max_scaled - 0.5*int(self.center)
 
+    def __repr__(self):
+        return f"MinMaxScale(center={self.center}, max={self.max}, min={self.min})"
+
 class CWT(Transform):
     """
     Calculates the continuous wavelet transform based on the parameters provided in the constructor. Default wavelet is morlet with A=0.5, B=0.8125.
@@ -264,8 +379,11 @@ class CWT(Transform):
         plot: bool=False, 
         wavelet: str='cmor5-0.8125',
         sample_rate=None,
+        device='cuda',
         **kwargs
     ):
+        super().__init__()
+        self.device=device
         self.lower_bound = lower_bound
         self.higher_bound = higher_bound
         self.resolution = resolution
@@ -285,7 +403,17 @@ class CWT(Transform):
         x -= x.mean()
         if self.scales is None:
             self.scales = (self.wavelet_B_param*signal.sample_rate)/self.freq_space
-        coefficients, frequencies = pywt.cwt(x, self.scales, self.wavelet, sampling_period=1/signal.sample_rate)
+        
+        if isinstance(x, np.ndarray):
+            device = torch.device(self.device)
+            x = torch.tensor(x, dtype=torch.float32, device=device)
+
+        coefficients = []
+        for scale in tqdm(self.scales, desc="Calculating CWT"):
+            coef, _ = ptwt.cwt(x, [scale], self.wavelet, sampling_period=1/signal.sample_rate)
+            coefficients.append(coef[0].cpu().numpy())  
+
+        coefficients = np.array(coefficients)
         if self.plot:
             plt.figure(figsize=(9, 3))
             plt.imshow(
@@ -299,6 +427,9 @@ class CWT(Transform):
             plt.title(f'CWT {signal.type}')
             plt.show()
         return coefficients
+
+    def __repr__(self):
+        return f"CWT(lower_bound={self.lower_bound}, higher_bound={self.higher_bound}, resolution={self.resolution}, wavelet={self.wavelet}, wavelet_A_param={self.wavelet_A_param}, wavelet_B_param={self.wavelet_B_param})"
 
 # static transforms
 def phase_coherence(angles):
@@ -332,15 +463,22 @@ def WPC(cwt1, cwt2, fs=250, freq=np.linspace(0.1, 0.55, 60), num_cyc=5):
         win_len = math.floor(win_len_sec * fs) # in samples
         num_windows = math.floor(sig_len / win_len)
         pc_f = np.zeros([num_windows])
-        for w_idx in range(num_windows):
-            start_idx = w_idx*win_len
-            end_idx = start_idx + win_len
-            #print(start_idx, end_idx)
-            pc_f[w_idx] = WPC_of_coeffs(coeffs1[f_idx,start_idx:end_idx],
-                                        coeffs2[f_idx,start_idx:end_idx])
-       
-        resampled_pc_f = np.clip(scipy.signal.resample_poly(pc_f, M, num_windows), 0, 1)
-       
+        try:
+            for w_idx in range(num_windows):
+                start_idx = w_idx*win_len
+                end_idx = start_idx + win_len
+                #print(start_idx, end_idx)
+                pc_f[w_idx] = WPC_of_coeffs(coeffs1[f_idx,start_idx:end_idx],
+                                            coeffs2[f_idx,start_idx:end_idx])
+
+            if M == 0 or num_windows == 0:
+                raise RuntimeError("Ground Truth and Prediction are too short to evaluate at specified frequencies!")
+
+            resampled_pc_f = np.clip(scipy.signal.resample_poly(pc_f, M, num_windows), 0, 1)
+        except RuntimeError as e:
+            print(e)
+            return t, None, np.array([-1])
+
         # consider whether any magnitudes > 1
         PC[f_idx,:] = np.transpose(resampled_pc_f)
 

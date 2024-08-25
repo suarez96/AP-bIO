@@ -14,7 +14,7 @@ from skl2onnx.common.data_types import FloatTensorType
 from tqdm.auto import tqdm
 import yaml
 
-def load_yaml(path, eval=False):
+def load_yaml(path):
 
     with open(path) as stream:
         try:
@@ -22,12 +22,6 @@ def load_yaml(path, eval=False):
         except yaml.YAMLError as e:
             print(e)
             return None
-
-    # jump size needs to be one for eval so that it infers on all samples sequentially
-    if eval:
-        # TODO figure out why batch_size != 1 does not work
-        # parsed_yaml['learner_params']['batch_size'] = 1
-        parsed_yaml['learner_params']['jump_size'] = 1
     
     return parsed_yaml
 

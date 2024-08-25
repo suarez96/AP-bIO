@@ -1,0 +1,73 @@
+desc: "NIAGARA FULL TEST. C - ECG Filtering 8-35hz"
+
+data:
+  train_samples: 25
+
+learner_params:
+  jump_size: 10 # num samples that sliding window jumps forward for every train signal
+  batch_size: 128 # data loader batch size
+  lr: 0.0003
+  iters: 10
+
+model_params:
+  seq_len: 256
+  d_model: 64
+  n_layers: 4
+  d_k: 8
+  d_v: 8
+  n_heads: 4
+
+  # test:
+  #   Crop_start: 420 # 7th minute in marsh data is unlabored breathing
+  #   Crop_end: 480
+
+cwt_evaluation:
+  low: 0.10
+  high: 0.55
+  resolution: 60
+
+# transforms used in each global time series
+# TODO explore highpassing the ecg to remove baseline wander
+global_ecg_pipeline:
+  # Quantize:
+  #   - precision: 16
+  Crop:
+    - start: 10 # first 3 minutes in marsh data are unlabored breathing
+    - end: 720
+  # SSA:
+  #   - window_size: 200
+  #   - remove_components: True
+  #   - n_components: 1
+  MinMaxScale: # can be removed
+    - _min: -0.0006556945871500413 # calculated with 14 train samples
+    - _max: 0.002935897811694481
+    - center: False
+  MeanSubtraction:
+  Detrend:
+  HighPass:
+    - cutoff: 8
+  LowPass:
+    - cutoff: 35
+
+global_ip_pipeline:
+  Crop:
+    - start: 10 # first 3 minutes in marsh data are unlabored breathing
+    - end: 720
+  MinMaxScale: # can be removed
+    - _min: -0.00016327855480638344
+    - _max: 0.00032915616510091866
+    - center: False
+  MeanSubtraction:
+  Detrend:
+  # HighPass:
+  #   - cutoff: 0.08
+  LowPass:
+    - cutoff: 1
+
+# transforms for each individual time series used in training
+batch_ecg_pipeline:
+  # Detrend:
+
+batch_ip_pipeline:
+
+dataloader_pipeline:
