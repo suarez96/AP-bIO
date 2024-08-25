@@ -11,6 +11,7 @@ import ptwt
 import torch
 from tqdm import tqdm
 from pyts.decomposition import SingularSpectrumAnalysis
+import scipy
 
 def build_transforms(pipeline=None, pipeline_args=None, search_space=None):
     """
@@ -224,6 +225,27 @@ class LowPass(Transform):
     def __repr__(self):
         return f"LowPass(cutoff={self.cutoff}, fs={self.fs}, order={self.order})"
 
+class FIRFilter(Transform):
+    """
+    order: Length of the filter (number of coefficients, i.e. the filter order + 1). numtaps must be odd if a passband includes the Nyquist frequency.
+    """
+    def __init__(self, cutoff, order, pass_zero_type, fs=250):
+        super().__init__()
+        self.cutoff = cutoff
+        self.fs = fs
+        self.order = order
+        self.numtaps = order + 1
+        self.pass_zero_type = pass_zero_type
+        self.b, self.a = scipy.signal.firwin(self.numtaps, self.cutoff, pass_zero=self.pass_zero_type, fs=self.fs), 1
+    
+    # Function to apply the lowpass filter
+    def _transform(self, x, signal):
+        # Use filtfilt to get the zero phase filtered signal
+        filtered_signal = scipy.signal.filtfilt(self.b, self.a, x)
+        return filtered_signal
+
+    def __repr__(self):
+        return f"LowPass(cutoff={self.cutoff}, fs={self.fs}, order={self.order}, pass_zero_type={self.pass_zero_type}, b={self.b}, a={self.a})"
 
 class HighPass(Transform):
     """
