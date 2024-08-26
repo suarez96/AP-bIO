@@ -110,7 +110,7 @@ class LoaderBuilder:
         # take global ECG and break it into parts after applying transform
         for subject in tqdm(dataset, desc="building dataloader..."):
             
-            subject_id = int(subject.ECG().filepath.split('/')[-2])
+            subject_id = int(os.path.basename(os.path.dirname(subject.ECG().filepath)))
 
             # build targets
             input_ip_raw = subject.IP().transform(transforms=self.global_ip_pipeline)
