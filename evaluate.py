@@ -9,7 +9,8 @@ logger = logging.getLogger(__name__)
 # TODO make each metric a callable
 def evaluate_model(preds, gt, device='cpu', num_windows_per_subject=[], test_idxs=[], plot=False, save_visuals=False, model_name=None, post_processing_pipeline=[], **kwargs):
     start = 0
-    scores = []
+    wpc_scores = []
+    mse_scores = []
     if save_visuals:
         if not os.path.exists(f"visuals/{model_name}"):
             os.makedirs(f"visuals/{model_name}")
@@ -60,6 +61,11 @@ def evaluate_model(preds, gt, device='cpu', num_windows_per_subject=[], test_idx
         preds_cwt = apply_cwt(preds_subject, "Predictions")
         gt_cwt = apply_cwt(gt_subject, "Ground Truth")
 
+        mse = Transforms.MeanSquaredError(
+            gt_subject.transformed_data, preds_subject.transformed_data
+        )
+        logger.info(f"Subject: {test_idx}, MSE: {mse}")
+        mse_scores.append(mse)
         score = Transforms.WPC(
             preds_cwt, gt_cwt, 
             freq=np.linspace(
@@ -69,9 +75,9 @@ def evaluate_model(preds, gt, device='cpu', num_windows_per_subject=[], test_idx
             )
         )[2].mean()
         logger.info(f"Subject: {test_idx}, WPC: {score}")
-        scores.append(score)
+        wpc_scores.append(score)
         # roll window to next sample
         start = end
 
-    logger.info(f"Avg WPC: {np.array(scores).mean()}")
-    return scores
+    logger.info(f"Avg WPC: {np.array(wpc_scores).mean()}")
+    return f"WPC Scores: {wpc_scores}\nAvg WPC: {np.array(wpc_scores).mean()} \nMSE Scores: {mse_scores} \nAvg MSE: {np.array(mse_scores).mean()}"
