@@ -424,6 +424,7 @@ class CWT(Transform):
 
         coefficients = np.array(coefficients)
         if self.plot or self.save_visuals:
+            plt.close()
             plt.figure(figsize=(9, 3))
             plt.imshow(
                 np.abs(coefficients)[::-1, :],  # flip axis
@@ -525,3 +526,9 @@ def upsample_and_blur(t=None, a=None, x_rep=3, y_rep=3, kernel_size=5):
         )
         
     return upsample_t, upsample_a
+
+def MeanSquaredError(gt, pred):
+    """
+    Calculate the mean squared error between predictions and ground truth signals.
+    """
+    return np.mean((gt - pred) ** 2)

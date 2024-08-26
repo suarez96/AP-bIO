@@ -136,7 +136,7 @@ def run(args):
         # model_name = model.run_id
         **args['yaml_args']['cwt_evaluation'], 
     )
-    print(f"DONE! \nScores: {scores}")
+    print(f"DONE! \n{scores}")
 
     end_time = time.time()  
     elapsed_time = end_time - start_time 
