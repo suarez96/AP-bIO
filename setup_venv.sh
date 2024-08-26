@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#using virtual environment name 'meng'
-VENV_DIR="meng"
+#using virtual environment name 'berjlab_ml'
+VENV_DIR="berjlab_ml"
 
 python3 -m venv $VENV_DIR
 
