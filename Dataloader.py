@@ -110,11 +110,23 @@ class LoaderBuilder:
         # take global ECG and break it into parts after applying transform
         for subject in tqdm(dataset, desc="building dataloader..."):
             
-            subject_id = int(subject.ECG().filepath.split('/')[-2])
+            subject_id = int(os.path.basename(os.path.dirname(subject.ECG().filepath)))
 
             # build targets
             input_ip_raw = subject.IP().transform(transforms=self.global_ip_pipeline)
             input_ip = input_ip_raw.transformed_data
+
+            for transform in self.global_ip_pipeline:
+                input_ip = transform(input_ip)
+                if self.visualize:
+                    plt.figure(figsize=(10, 4))
+                    plt.plot(input_ip)
+                    plt.title(f'Transformation: {transform} on IP Signal for Subject {subject_id}')
+                    plt.xlabel('Samples')
+                    plt.ylabel('Amplitude')
+                    plt.legend()
+                    plt.show()
+
             y_ip = input_ip[self.seq_len-1:][::jump_size]
             y_stack.append(y_ip)
 
@@ -129,6 +141,17 @@ class LoaderBuilder:
                 input_ecg_raw = subject.ECG().transform(transforms=self.global_ecg_pipeline)
                 # extract transformed data
                 input_ecg = input_ecg_raw.transformed_data
+                for transform in self.global_ecg_pipeline:
+                    input_ecg = transform(input_ecg)
+                    if self.visualize:
+                        plt.figure(figsize=(10, 4))
+                        plt.plot(input_ecg)
+                        plt.title(f'Transformation: {transform} on ECG Signal for Subject {subject_id}')
+                        plt.xlabel('Samples')
+                        plt.ylabel('Amplitude')
+                        plt.legend()
+                        plt.show()
+
                 # get rolling windows
                 X_ecg_rolling = get_rolling_windows(
                     input_ecg, 
