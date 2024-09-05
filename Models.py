@@ -61,7 +61,7 @@ class TSAITransformer(Model):
             self.learner.model.eval()
 
     def train(self, iters, lr):
-        logger.info("Training finished")
+        logger.info("Training started")
         self.learner.fit_one_cycle(iters, lr)
         self.learner.model.eval()
         logger.info("Training finished")
