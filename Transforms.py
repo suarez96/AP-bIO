@@ -246,7 +246,7 @@ class FIRFilter(Transform):
         return filtered_signal
 
     def __repr__(self):
-        return f"LowPass(cutoff={self.cutoff}, fs={self.fs}, order={self.order}, pass_zero_type={self.pass_zero_type}, b={self.b}, a={self.a})"
+        return f"FIRFilter(cutoff={self.cutoff}, fs={self.fs}, order={self.order}, pass_zero_type={self.pass_zero_type})"
 
 class HighPass(Transform):
     """
