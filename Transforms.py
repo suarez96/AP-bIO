@@ -227,27 +227,31 @@ class LowPass(Transform):
         return f"LowPass(cutoff={self.cutoff}, fs={self.fs}, order={self.order})"
 
 # TODO make sure multiple instances of the same transform can be passed
-class FIRFilter(Transform):
+class FIRFilter:
     """
     order: Length of the filter (number of coefficients, i.e. the filter order + 1). numtaps must be odd if a passband includes the Nyquist frequency.
     """
-    def __init__(self, cutoff, order, pass_zero_type, fs=250):
+    def __init__(self, cutoff, pass_zero_type, fs=250, half_order=None, order=None):
         super().__init__()
         self.cutoff = cutoff
         self.fs = fs
-        self.order = order
-        self.numtaps = order + 1
+        assert order or half_order, "One of 'order' or 'half-order' must be defined'"
+        if half_order:
+            self.half_order = half_order
+            self.order = half_order*2
+        else:
+            assert order%2==0, "Forward-backward pass for zero-phase filter indicates that filter order must be a multiple of two."
+            self.half_order = order // 2
+            self.order = order
+        self.numtaps = self.half_order + 1
         self.pass_zero_type = pass_zero_type
         self.b, self.a = scipy.signal.firwin(self.numtaps, self.cutoff, pass_zero=self.pass_zero_type, fs=self.fs), 1
     
     # Function to apply the lowpass filter
-    def _transform(self, x, signal):
+    def _transform(self, x):
         # Use filtfilt to get the zero phase filtered signal
         filtered_signal = scipy.signal.filtfilt(self.b, self.a, x)
         return filtered_signal
-
-    def __repr__(self):
-        return f"FIRFilter(cutoff={self.cutoff}, fs={self.fs}, order={self.order}, pass_zero_type={self.pass_zero_type})"
 
 class AddNoise(Transform):
 
