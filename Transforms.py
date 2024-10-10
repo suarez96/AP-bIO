@@ -226,6 +226,7 @@ class LowPass(Transform):
     def __repr__(self):
         return f"LowPass(cutoff={self.cutoff}, fs={self.fs}, order={self.order})"
 
+# TODO make sure multiple instances of the same transform can be passed
 class FIRFilter(Transform):
     """
     order: Length of the filter (number of coefficients, i.e. the filter order + 1). numtaps must be odd if a passband includes the Nyquist frequency.
@@ -247,6 +248,35 @@ class FIRFilter(Transform):
 
     def __repr__(self):
         return f"FIRFilter(cutoff={self.cutoff}, fs={self.fs}, order={self.order}, pass_zero_type={self.pass_zero_type})"
+
+class AddNoise(Transform):
+
+    color_beta_map = {
+        'violet': -2,
+        'blue': -1,
+        'white': 0,
+        'pink': 1,
+        'brown': 2,
+    }
+
+    def __init__(self, noise_color: str, fs: int=250):
+        super().__init__()
+        assert noise_color in self.color_beta_map, f"Noise color invalid. Choose from {','.join(list(self.color_beta_map.keys()))}"
+        self.noise_color = noise_color
+        self.fs = fs
+        
+    def _transform(self, x, signal):
+        noise = nk.signal_noise(
+            duration=x.shape[0]/self.fs, 
+            sampling_rate=self.fs, 
+            beta=self.color_beta_map[self.noise_color],
+            random_state=None
+        )
+        return x + noise
+
+    def __repr__(self):
+        return f"AddNoise({self.noise_color=}, {self.fs=})"
+
 
 class HighPass(Transform):
     """

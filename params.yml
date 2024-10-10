@@ -1,13 +1,13 @@
-desc: "build transforms test"
+desc: "Oct 10th 1000 filter order, 23 train samples, 5 iters B TEST"
 
 data:
-  train_samples: 2
+  train_samples: 23
 
 learner_params:
   jump_size: 10 # num samples that sliding window jumps forward for every train signal
   batch_size: 128 # data loader batch size
   lr: 0.0003
-  iters: 1
+  iters: 5
 
 model_params:
   seq_len: 256
@@ -32,41 +32,33 @@ global_ecg_pipeline:
   # Quantize:
   #   - precision: 16
   Crop:
-      - start: 10
-      - end: 120
-    # - start: [10, 310, 490, 730]
-    # - end: [170, 410, 600, 890]
-  # SSA:
-  #   - window_size: 200
-  #   - remove_components: True
-  #   - n_components: 1
-  MinMaxScale: # can be removed
-    - _min: -0.0006556945871500413 # calculated with 14 train samples
-    - _max: 0.002935897811694481
-    - center: False
+    # - start: 10
+    # - end: 180
+    - start: [10, 310, 490, 730]
+    - end: [170, 410, 600, 890]
+  FIRFilter:
+    - cutoff: 12
+    - order: 2000
+    - pass_zero_type: "lowpass"
+  SSA:
+    - window_size: 150
+    - subtract_components: True
+    - n_components: 1
   MeanSubtraction:
   Detrend:
-  # HighPass:
-  #   - cutoff: 8
-  # LowPass:
-  #   - cutoff: 35
 
 global_ip_pipeline:
   Crop:
-      - start: 10
-      - end: 120
-    # - start: [10, 310, 490, 730]
-    # - end: [170, 410, 600, 890]
-  MinMaxScale: # can be removed
-    - _min: -0.00016327855480638344
-    - _max: 0.00032915616510091866
-    - center: False
+    # - start: 10
+    # - end: 180
+    - start: [10, 310, 490, 730]
+    - end: [170, 410, 600, 890]
+  FIRFilter:
+    - cutoff: 2
+    - order: 2000
+    - pass_zero_type: "lowpass"
   MeanSubtraction:
   Detrend:
-  # HighPass:
-  #   - cutoff: 0.08
-  LowPass:
-    - cutoff: 1
 
 # transforms for each individual time series used in training
 batch_ecg_pipeline:
@@ -77,10 +69,12 @@ batch_ip_pipeline:
 dataloader_pipeline:
 
 post_processing_pipeline:
-  ConvolveSmoothing: 
-    - kernel_size: 1000
-  LowPass:
+  # ConvolveSmoothing: 
+  #   - kernel_size: 1000
+  FIRFilter:
     - cutoff: 2
+    - order: 2000
+    - pass_zero_type: "lowpass"
   Detrend:
   MinMaxScale:
     - center: True

@@ -23,7 +23,7 @@ parser.add_argument('-e', '--eval-only', action='store_true', help='Only run eva
 parser.add_argument('-n', '--name', type=str, help='id/name of the model to be tested')
 parser.add_argument('-f', '--framework', type=str, help='Model framework. Tsai, envelope, torch, etc.', default='tsai')
 parser.add_argument('--train-indices', type=int, nargs="+", help='ID\'s of subjects to be trained on', default=None)
-parser.add_argument('-i', '--test-indices', type=int, nargs="+", help='ID\'s of subjects to be tested', default=[256, 1436, 5111, 8722])
+parser.add_argument('-i', '--test-indices', type=int, nargs="+", help='ID\'s of subjects to be tested', default=None)
 parser.add_argument('-m', '--marsh_path', type=str, help='Filepath to MARSH root directory', default='../MARSH/')
 parser.add_argument('-v', '--visualize', action='store_true', help='Plot helper visuals')
 parser.add_argument('-s', '--save_visuals', action='store_true', help='Save eval visuals (Predictions and CWT)')

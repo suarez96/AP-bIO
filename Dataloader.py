@@ -248,9 +248,10 @@ class LoaderBuilder:
             # cast all idxs to int in case
             self.idxs = [int(idx) for idx in idxs]
 
+
         tuple_dataset = itemgetter(*self.idxs)(self.full_dataset)
         adjusted_indices, tuple_dataset = self.apply_multi_crop(tuple_dataset)
-
+        
         if len(self.idxs) == 1:
             tuple_dataset = tuple([tuple_dataset])
 
