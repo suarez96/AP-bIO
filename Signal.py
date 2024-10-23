@@ -91,10 +91,22 @@ class Signal:
     def copy(self):
         return copy.copy(self)
 
-    def transform(self, transforms, inplace=False):
+    def transform(self, transforms, inplace=False, visualize=False):
         """
         Apply a series of transforms defined in the pipeline called "transforms".
         """
+        # create single plot for all step by step visualizations
+        if visualize:
+            all_transforms_fig = go.Figure(layout=dict(title='All transforms'))
+            all_transforms_fig.add_trace(
+                go.Scatter(
+                    y = self.data.copy(),
+                    name = "Initial Input Data"
+                )
+            )
+        else:
+            all_transforms_fig = None
+
         self.transformed_data = self.data.copy()
         for t in transforms:
             # lambda function support
@@ -102,9 +114,21 @@ class Signal:
                 self.transformed_data = t(self.transformed_data)
             else:
                 self.transformed_data = t(self)
+            if visualize and all_transforms_fig is not None:
+                # plot current transforms
+                all_transforms_fig.add_trace(
+                    go.Scatter(
+                        y = self.transformed_data,
+                        name = str(t)
+                    )
+                )
+
         # replace data with transformed data
         if inplace:
             self.data=self.transformed_data
+
+        if visualize:
+            all_transforms_fig.show()
         return self
 
     def mat_loader(self, filepath, _type):

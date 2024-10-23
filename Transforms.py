@@ -34,6 +34,7 @@ def build_transforms(pipeline=None, pipeline_args=None, search_space=None):
         'SSA': SSA,
         'CoarseDownsample': CoarseDownsample,
         'FIRFilter': FIRFilter,
+        'AddNoise': AddNoise,
     }
 
     created_pipeline = []
@@ -227,7 +228,7 @@ class LowPass(Transform):
         return f"LowPass(cutoff={self.cutoff}, fs={self.fs}, order={self.order})"
 
 # TODO make sure multiple instances of the same transform can be passed
-class FIRFilter:
+class FIRFilter(Transform):
     """
     order: Length of the filter (number of coefficients, i.e. the filter order + 1). numtaps must be odd if a passband includes the Nyquist frequency.
     """
@@ -248,10 +249,14 @@ class FIRFilter:
         self.b, self.a = scipy.signal.firwin(self.numtaps, self.cutoff, pass_zero=self.pass_zero_type, fs=self.fs), 1
     
     # Function to apply the lowpass filter
-    def _transform(self, x):
+    def _transform(self, x, signal):
         # Use filtfilt to get the zero phase filtered signal
         filtered_signal = scipy.signal.filtfilt(self.b, self.a, x)
         return filtered_signal
+    
+    def __repr__(self):
+        return f"FIRFilter({self.cutoff=}, {self.fs=}, {self.pass_zero_type=}, {self.order})"
+
 
 class AddNoise(Transform):
 
@@ -263,11 +268,13 @@ class AddNoise(Transform):
         'brown': 2,
     }
 
-    def __init__(self, noise_color: str, fs: int=250):
+    def __init__(self, noise_color: str, fs: int=250, scale: float=1):
         super().__init__()
         assert noise_color in self.color_beta_map, f"Noise color invalid. Choose from {','.join(list(self.color_beta_map.keys()))}"
-        self.noise_color = noise_color
+        self.noise_color = noise_color.lower()
         self.fs = fs
+        self.scale = scale
+        assert self.scale < 0.0001, "Noise scale too large! Will deteriorate model"
         
     def _transform(self, x, signal):
         noise = nk.signal_noise(
@@ -276,10 +283,11 @@ class AddNoise(Transform):
             beta=self.color_beta_map[self.noise_color],
             random_state=None
         )
-        return x + noise
+        noise -= noise.mean()
+        return x + noise * self.scale
 
     def __repr__(self):
-        return f"AddNoise({self.noise_color=}, {self.fs=})"
+        return f"AddNoise({self.noise_color=}, {self.fs=}, {self.scale=})"
 
 
 class HighPass(Transform):

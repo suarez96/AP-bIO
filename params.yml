@@ -1,4 +1,4 @@
-desc: "Oct 10th 1000 filter order, 23 train samples, 5 iters B TEST"
+desc: "Oct 10th pink noise test 2000 filter order, 23 train samples, 5 iters B TEST"
 
 data:
   train_samples: 23
@@ -37,15 +37,16 @@ global_ecg_pipeline:
     - start: [10, 310, 490, 730]
     - end: [170, 410, 600, 890]
   FIRFilter:
-    - cutoff: 12
+    - cutoff: 20
     - order: 2000
     - pass_zero_type: "lowpass"
   SSA:
     - window_size: 150
     - subtract_components: True
     - n_components: 1
-  MeanSubtraction:
-  Detrend:
+  AddNoise:
+    - noise_color: "pink"
+    - scale: 0.000025
 
 global_ip_pipeline:
   Crop:

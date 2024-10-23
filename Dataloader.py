@@ -113,44 +113,23 @@ class LoaderBuilder:
             subject_id = int(os.path.basename(os.path.dirname(subject.ECG().filepath)))
 
             # build targets
-            input_ip_raw = subject.IP().transform(transforms=self.global_ip_pipeline)
+            input_ip_raw = subject.IP().transform(transforms=self.global_ip_pipeline, visualize=self.visualize)
             input_ip = input_ip_raw.transformed_data
-
-            for transform in self.global_ip_pipeline:
-                input_ip = transform(input_ip)
-                if self.visualize:
-                    plt.figure(figsize=(10, 4))
-                    plt.plot(input_ip)
-                    plt.title(f'Transformation: {transform} on IP Signal for Subject {subject_id}')
-                    plt.xlabel('Samples')
-                    plt.ylabel('Amplitude')
-                    plt.legend()
-                    plt.show()
 
             y_ip = input_ip[self.seq_len-1:][::jump_size]
             y_stack.append(y_ip)
 
             # build inputs. will be the ECG envelope if that model is selected
             if self.framework == 'envelope':
-                input_envelope_raw = subject.ECG_ENV().transform(transforms=self.global_ip_pipeline)
+                input_envelope_raw = subject.ECG_ENV().transform(transforms=self.global_ip_pipeline, visualize=self.visualize)
                 input_envelope = input_envelope_raw.transformed_data[self.seq_len-1:][::jump_size]
                 X_stack.append(input_envelope)
                 num_windows_per_subject.append(len(input_envelope))
 
             else:
-                input_ecg_raw = subject.ECG().transform(transforms=self.global_ecg_pipeline)
+                input_ecg_raw = subject.ECG().transform(transforms=self.global_ecg_pipeline, visualize=self.visualize)
                 # extract transformed data
                 input_ecg = input_ecg_raw.transformed_data
-                for transform in self.global_ecg_pipeline:
-                    input_ecg = transform(input_ecg)
-                    if self.visualize:
-                        plt.figure(figsize=(10, 4))
-                        plt.plot(input_ecg)
-                        plt.title(f'Transformation: {transform} on ECG Signal for Subject {subject_id}')
-                        plt.xlabel('Samples')
-                        plt.ylabel('Amplitude')
-                        plt.legend()
-                        plt.show()
 
                 # get rolling windows
                 X_ecg_rolling = get_rolling_windows(
@@ -160,18 +139,6 @@ class LoaderBuilder:
                 )
                 X_stack.append(X_ecg_rolling)
                 num_windows_per_subject.append(len(X_ecg_rolling))
-
-            if self.visualize:
-                fig, ax = plt.subplots(nrows=2, figsize=(9, 6))
-                fig.suptitle(f"Postprocessed {subject_id}")
-                ax[0].plot(X_stack[-1][0])
-                ax[0].plot(X_stack[-1][len(X_stack)//2])
-                ax[0].plot(X_stack[-1][-1])
-                ax[0].set_title(f'Postprocessed Input Samples')
-                ax[1].plot(y_ip)
-                ax[1].set_title(f'Postprocessed Target')
-                fig.tight_layout()
-                plt.show()
 
         return np.vstack(X_stack), np.hstack(y_stack).flatten(), num_windows_per_subject
 
