@@ -274,7 +274,7 @@ class AddNoise(Transform):
         self.noise_color = noise_color.lower()
         self.fs = fs
         self.scale = scale
-        assert self.scale < 0.0001, "Noise scale too large! Will deteriorate model"
+        assert self.scale < 0.0001, "Noise scale too large! Will deteriorate model."
         
     def _transform(self, x, signal):
         noise = nk.signal_noise(
