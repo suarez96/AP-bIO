@@ -255,7 +255,7 @@ class FIRFilter(Transform):
         return filtered_signal
     
     def __repr__(self):
-        return f"FIRFilter({self.cutoff=}, {self.fs=}, {self.pass_zero_type=}, {self.order})"
+        return f"FIRFilter({self.cutoff=}, {self.fs=}, {self.pass_zero_type=}, {self.order=})"
 
 
 class AddNoise(Transform):
