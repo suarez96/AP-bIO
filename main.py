@@ -42,7 +42,7 @@ def run(args):
             args['yaml_path']
         )
 
-    loader_builder = Dataloader.LoaderBuilder(
+    builder_args = dict(
         marsh_path=args['marsh_path'],
         train_samples=args['yaml_args']['data']['train_samples'],
         seq_len=args['yaml_args']['model_params']['seq_len'],
@@ -54,8 +54,8 @@ def run(args):
         visualize=args['visualize']
     )
 
-    train_loader_builder = copy.deepcopy(loader_builder)
-    test_loader_builder = copy.deepcopy(loader_builder)
+    train_loader_builder = Dataloader.LoaderBuilder(eval_mode=False, **builder_args)
+    test_loader_builder = Dataloader.LoaderBuilder(eval_mode=True, **builder_args)
     # train logic
     if not args['eval_only']:
 
@@ -132,8 +132,8 @@ def run(args):
         plot=args['visualize'],
         save_visuals=args['save_visuals'],
         model_name=model_name, 
+        experiment_description=args['yaml_args'].get('desc', ''),
         post_processing_pipeline=args['yaml_args']['post_processing_pipeline'],
-        # model_name = model.run_id
         **args['yaml_args']['cwt_evaluation'], 
     )
     print(f"DONE! \n{scores}")

@@ -1,4 +1,4 @@
-desc: "Oct 10th pink noise test 2000 filter order, 23 train samples, 5 iters B TEST"
+desc: "pink noise test train only aug. 2000 filter order, 23 train samples, 5 iters A TEST"
 
 data:
   train_samples: 23
@@ -37,7 +37,7 @@ global_ecg_pipeline:
     - start: [10, 310, 490, 730]
     - end: [170, 410, 600, 890]
   FIRFilter:
-    - cutoff: 20
+    - cutoff: 40
     - order: 2000
     - pass_zero_type: "lowpass"
   SSA:
@@ -46,7 +46,8 @@ global_ecg_pipeline:
     - n_components: 1
   AddNoise:
     - noise_color: "pink"
-    - scale: 0.000025
+    - scale: 0.00005
+    - skip_eval: True
 
 global_ip_pipeline:
   Crop:
@@ -58,7 +59,6 @@ global_ip_pipeline:
     - cutoff: 2
     - order: 2000
     - pass_zero_type: "lowpass"
-  MeanSubtraction:
   Detrend:
 
 # transforms for each individual time series used in training

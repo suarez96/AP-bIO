@@ -1,4 +1,4 @@
-desc: "DEBUG PARAMS"
+desc: "pink noise test train only aug. 2000 filter order, 23 train samples, 10 iters A TEST"
 
 data:
   train_samples: 23
@@ -7,7 +7,7 @@ learner_params:
   jump_size: 10 # num samples that sliding window jumps forward for every train signal
   batch_size: 128 # data loader batch size
   lr: 0.0003
-  iters: 2
+  iters: 10
 
 model_params:
   seq_len: 256
@@ -32,32 +32,33 @@ global_ecg_pipeline:
   # Quantize:
   #   - precision: 16
   Crop:
-    - start: 10
-    - end: 180
-    # - start: [10, 310, 490, 730]
-    # - end: [170, 410, 600, 890]
+    # - start: 10
+    # - end: 180
+    - start: [10, 310, 490, 730]
+    - end: [170, 410, 600, 890]
   FIRFilter:
-    - cutoff: 12
-    - order: 1000
+    - cutoff: 40
+    - order: 2000
     - pass_zero_type: "lowpass"
-  # SSA:
-  #   - window_size: 150
-  #   - subtract_components: True
-  #   - n_components: 1
-  MeanSubtraction:
-  Detrend:
+  SSA:
+    - window_size: 150
+    - subtract_components: True
+    - n_components: 1
+  AddNoise:
+    - noise_color: "pink"
+    - scale: 0.00005
+    - skip_eval: True
 
 global_ip_pipeline:
   Crop:
-    - start: 10
-    - end: 180
-    # - start: [10, 310, 490, 730]
-    # - end: [170, 410, 600, 890]
+    # - start: 10
+    # - end: 180
+    - start: [10, 310, 490, 730]
+    - end: [170, 410, 600, 890]
   FIRFilter:
     - cutoff: 2
-    - order: 200
+    - order: 2000
     - pass_zero_type: "lowpass"
-  MeanSubtraction:
   Detrend:
 
 # transforms for each individual time series used in training
@@ -71,8 +72,10 @@ dataloader_pipeline:
 post_processing_pipeline:
   # ConvolveSmoothing: 
   #   - kernel_size: 1000
-  LowPass:
-    - cutoff: 1
+  FIRFilter:
+    - cutoff: 2
+    - order: 2000
+    - pass_zero_type: "lowpass"
   Detrend:
   MinMaxScale:
     - center: True

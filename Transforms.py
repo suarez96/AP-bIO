@@ -13,7 +13,7 @@ from tqdm import tqdm
 from pyts.decomposition import SingularSpectrumAnalysis
 import scipy
 
-def build_transforms(pipeline=None, pipeline_args=None, search_space=None):
+def build_transforms(eval_mode: bool, pipeline=None, pipeline_args=None, search_space=None):
     """
     Use the parameters defined in our yaml or in our search space to build
     the transforms
@@ -46,6 +46,10 @@ def build_transforms(pipeline=None, pipeline_args=None, search_space=None):
             for p in transform_params:
                 args.update(p)
 
+        # some transforms are only applied during training. e.g. augmentations
+        if eval_mode and args.get('skip_eval', False):
+            continue
+
         created_pipeline.append(
             translation_map[transform_name](**args)
         )
@@ -66,8 +70,8 @@ class Transform(ABC):
     """
 
 
-    def __init__(self):
-        pass
+    def __init__(self, skip_eval=False):
+        self.skip_eval=skip_eval
 
     def __call__(self, signal):
         """
@@ -268,8 +272,8 @@ class AddNoise(Transform):
         'brown': 2,
     }
 
-    def __init__(self, noise_color: str, fs: int=250, scale: float=1):
-        super().__init__()
+    def __init__(self, noise_color: str, fs: int=250, scale: float=1, **kwargs):
+        super().__init__(**kwargs)
         assert noise_color in self.color_beta_map, f"Noise color invalid. Choose from {','.join(list(self.color_beta_map.keys()))}"
         self.noise_color = noise_color.lower()
         self.fs = fs

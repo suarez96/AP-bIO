@@ -25,7 +25,8 @@ class LoaderBuilder:
         jump_size,
         batch_size,
         framework,
-        visualize=False
+        eval_mode: bool,
+        visualize=False,
     ):
         self.marsh_path = marsh_path
         self.train_samples = train_samples
@@ -33,10 +34,10 @@ class LoaderBuilder:
             int(i): MarshData(os.path.join(marsh_path, i), verbose=False) for i in tqdm(os.listdir(self.marsh_path), desc='traversing MARSH data...') if len(i) == 4
         }
         self.global_ecg_pipeline = Transforms.build_transforms(
-            global_ecg_pipeline
+            pipeline=global_ecg_pipeline, eval_mode=eval_mode
         )
         self.global_ip_pipeline = Transforms.build_transforms(
-            global_ip_pipeline
+            pipeline=global_ip_pipeline, eval_mode=eval_mode
         )
 
         print("self.global_ecg_pipeline", self.global_ecg_pipeline)
@@ -77,8 +78,8 @@ class LoaderBuilder:
         # go through all full_dataset samples
         for subject_num, sample in zip(self.idxs, dataset):
             # make N copies of each sample in dataset, N == # starts == # ends
-            for i, (start, end) in enumerate(zip(starts, ends)):
-                new_key = f"{subject_num}_crop_{i}"
+            for start, end in zip(starts, ends):
+                new_key = f"{subject_num}_crop_{start}_{end}"
                 # new MarshData object with all the attributes of the 'sample' variable
                 sample_copy = copy.deepcopy(sample)
                 crop_fn = Transforms.Crop(start=start, end=end)
