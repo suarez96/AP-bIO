@@ -4,10 +4,14 @@ from Signal import Signal
 import matplotlib.pyplot as plt
 import os
 import logging
+import pandas as pd
+from datetime import datetime
+
+
 logger = logging.getLogger(__name__)
 
 # TODO make each metric a callable
-def evaluate_model(preds, gt, device='cpu', num_windows_per_subject=[], test_idxs=[], plot=False, save_visuals=False, model_name=None, post_processing_pipeline=[], **kwargs):
+def evaluate_model(preds, gt, experiment_description='', device='cpu', output_file='compiled_results.csv', num_windows_per_subject=[], test_idxs=[], plot=False, save_visuals=False, model_name=None, post_processing_pipeline=[], **kwargs):
     start = 0
     wpc_scores = []
     mse_scores = []
@@ -15,13 +19,20 @@ def evaluate_model(preds, gt, device='cpu', num_windows_per_subject=[], test_idx
         if not os.path.exists(f"visuals/{model_name}"):
             os.makedirs(f"visuals/{model_name}")
 
+    if not os.path.exists(output_file):
+        results_df = pd.DataFrame()
+    else:
+        results_df = pd.read_csv(output_file, index_col='Model ID')
+    # new results row for this run
+    row = {"Model ID": model_name, "Description": experiment_description, "Train Date": datetime.today().strftime('%Y-%m-%d')}
+
     for n_windows, test_idx in zip(num_windows_per_subject, test_idxs):
         end = start + n_windows
         # change from column to flat
         preds_subject, gt_subject = preds.flatten()[start:end], gt.flatten()[start:end]
 
         post_processing = Transforms.build_transforms(
-            post_processing_pipeline
+            pipeline=post_processing_pipeline, eval_mode=True
         )
 
         preds_subject = Signal(
@@ -76,8 +87,25 @@ def evaluate_model(preds, gt, device='cpu', num_windows_per_subject=[], test_idx
         )[2].mean()
         logger.info(f"Subject: {test_idx}, WPC: {score}")
         wpc_scores.append(score)
+
+        # add results to dataframe row
+        row[f"MSE {test_idx}"] = mse
+        row[f"WPC {test_idx}"] = score
+
         # roll window to next sample
         start = end
 
-    logger.info(f"Avg WPC: {np.array(wpc_scores).mean()}")
-    return f"WPC Scores: {wpc_scores}\nAvg WPC: {np.array(wpc_scores).mean()} \nMSE Scores: {mse_scores} \nAvg MSE: {np.array(mse_scores).mean()}"
+    # calculate aggregate scores
+    avg_wpc = np.array(wpc_scores).mean()
+    avg_mse = np.array(mse_scores).mean()
+    logger.info(f"Avg WPC: {avg_wpc}")
+    logger.info(f"Avg MSE: {avg_mse}")
+
+    # save aggregate results to df
+    row["AVG WPC"] = avg_wpc
+    row["AVG MSE"] = avg_mse
+    row_dataframe = pd.DataFrame.from_records([row], index="Model ID")
+    results_df = pd.concat([results_df, row_dataframe])
+    results_df.to_csv(output_file)
+
+    return f"WPC Scores: {wpc_scores}\nAvg WPC: {np.array(wpc_scores).mean()} \nMSE Scores: {mse_scores} \nAvg MSE: {avg_mse}"
